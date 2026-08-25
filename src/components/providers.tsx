@@ -6,16 +6,25 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { createQueryClient } from "@/lib/query-client";
+import { SocketProvider } from "@/components/socket-provider";
+import { PlayerNameProvider } from "@/components/player-name-provider";
+import { RoomSessionProvider } from "@/modules/room/context/room-session-provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(createQueryClient);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        {children}
-        <Toaster richColors position="top-right" />
-      </TooltipProvider>
+      <SocketProvider>
+        <PlayerNameProvider>
+          <RoomSessionProvider>
+            <TooltipProvider>
+              {children}
+              <Toaster richColors position="top-right" />
+            </TooltipProvider>
+          </RoomSessionProvider>
+        </PlayerNameProvider>
+      </SocketProvider>
       {process.env.NODE_ENV === "development" && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );

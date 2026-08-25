@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { HomePage } from "@/modules/player/pages/home-page";
 
-export default function RootPage() {
-  redirect("/admin");
+export default function Page() {
+  return <HomePage />;
 }

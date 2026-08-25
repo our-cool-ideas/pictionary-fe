@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pictionary Admin",
-  description: "Admin panel for the Pictionary-style multiplayer drawing game",
+  title: "Pictionary",
+  description: "A Pictionary-style multiplayer drawing and guessing game",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
