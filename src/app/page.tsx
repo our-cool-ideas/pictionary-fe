@@ -1,5 +1,5 @@
-import { HomePage } from "@/modules/player/pages/home-page";
+import { SignInPage } from "@/modules/player/pages/sign-in-page";
 
 export default function Page() {
-  return <HomePage />;
+  return <SignInPage />;
 }

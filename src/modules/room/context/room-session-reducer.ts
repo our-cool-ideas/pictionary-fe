@@ -1,7 +1,7 @@
 import { initialRoomSessionState, type RoomSessionAction, type RoomSessionState } from "./room-session.type";
 
-function systemMessage(text: string): RoomSessionState["chatMessages"][number] {
-  return { id: `system-${Date.now()}-${Math.random()}`, playerId: "system", name: "System", message: text, sentAt: Date.now(), isSystem: true };
+function systemMessage(text: string, isCorrectGuess = false): RoomSessionState["chatMessages"][number] {
+  return { id: `system-${Date.now()}-${Math.random()}`, playerId: "system", name: "System", message: text, sentAt: Date.now(), isSystem: true, isCorrectGuess };
 }
 
 export function roomSessionReducer(state: RoomSessionState, action: RoomSessionAction): RoomSessionState {
@@ -31,7 +31,7 @@ export function roomSessionReducer(state: RoomSessionState, action: RoomSessionA
       return {
         ...state,
         correctGuesserIds: [...state.correctGuesserIds, action.payload.playerId],
-        chatMessages: [...state.chatMessages, systemMessage(`${action.payload.name} guessed the word! 🎉`)],
+        chatMessages: [...state.chatMessages, systemMessage(`${action.payload.name} guessed the word! 🎉`, true)],
       };
 
     case "TURN_ENDED":

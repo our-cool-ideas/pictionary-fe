@@ -1,9 +1,7 @@
 "use client";
 
-import { useSocket } from "@/hooks/use-socket";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { JoinRoomForm } from "@/modules/room/components/join-room-form";
-import { RoomLobby } from "@/modules/room/components/room-lobby";
 import { GameBoard } from "@/modules/room/components/game-board";
 import { GameOverScreen } from "@/modules/room/components/game-over-screen";
 import { RoomNoticeScreen } from "@/modules/room/components/room-notice-screen";
@@ -13,7 +11,6 @@ interface RoomPageProps {
 }
 
 export function RoomPage({ code }: RoomPageProps) {
-  const { playerId } = useSocket();
   const { state } = useRoomSession();
 
   if (state.youWereKicked) return <RoomNoticeScreen variant="kicked" />;
@@ -28,8 +25,8 @@ export function RoomPage({ code }: RoomPageProps) {
 
   if (state.gameOver) return <GameOverScreen gameOver={state.gameOver} players={state.room.players} />;
 
-  const gameInProgress = state.currentTurn !== null || state.lastTurnResult !== null;
-  if (gameInProgress) return <GameBoard />;
-
-  return <RoomLobby room={state.room} currentPlayerId={playerId} />;
+  // Joining lands straight on the drawing-room HUD now — no separate waiting
+  // lobby screen. GameBoard itself shows a pre-game Start/Copy-link banner
+  // in place of the turn HUD until a game is actually running.
+  return <GameBoard />;
 }

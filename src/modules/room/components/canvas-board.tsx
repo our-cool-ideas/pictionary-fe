@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { CanvasToolbar } from "@/modules/room/components/canvas-toolbar";
+import { TurnProgressBar } from "@/modules/room/components/turn-progress-bar";
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
@@ -172,32 +173,48 @@ export function CanvasBoard({ isDrawer }: CanvasBoardProps) {
   }, [state.currentTurn?.turnNumber]);
 
   return (
-    <div className="flex flex-col gap-2">
-      {isDrawer && (
-        <CanvasToolbar
-          color={color}
-          onColorChange={setColor}
-          width={width}
-          onWidthChange={setWidth}
-          tool={tool}
-          onToolChange={setTool}
-          onClear={actions.clearCanvas}
-          onUndo={actions.undo}
-          onRedo={actions.redo}
-          canUndo={state.strokes.length > 0}
-        />
-      )}
-      <canvas
-        ref={canvasRef}
-        width={CANVAS_WIDTH}
-        height={CANVAS_HEIGHT}
-        className="w-full touch-none rounded-lg border bg-white"
-        style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`, cursor: isDrawer ? (tool === "fill" ? "copy" : "crosshair") : "default" }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-      />
+    <div className="flex w-full flex-col gap-2">
+      {/* The draining countdown bar lives on top of the canvas now, not as
+          a numeric badge in the room-metadata card. */}
+      {state.currentTurn && <TurnProgressBar turn={state.currentTurn} />}
+
+      <div className="flex gap-2">
+        {/* Side toolbar, not a bar across the top — stretches to the
+            canvas's full height via the row's default cross-axis stretch. */}
+        {isDrawer && (
+          <CanvasToolbar
+            color={color}
+            onColorChange={setColor}
+            width={width}
+            onWidthChange={setWidth}
+            tool={tool}
+            onToolChange={setTool}
+            onClear={actions.clearCanvas}
+            onUndo={actions.undo}
+            onRedo={actions.redo}
+            canUndo={state.strokes.length > 0}
+          />
+        )}
+        {/* Width-driven, not height-capped — this is what makes the canvas
+            extend to the same width as the chat/"text box" panel below it
+            (both fill their column), with height simply following the
+            fixed 800x500 aspect ratio. The pointer-coordinate scale math in
+            getRelativePoint reads the actual rendered rect either way, so
+            it stays correct regardless of how big this ends up. */}
+        <div className="min-w-0 flex-1">
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            className="w-full touch-none rounded-2xl border-[3px] border-play-ink bg-white shadow-[5px_5px_0_var(--color-play-ink)]"
+            style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`, cursor: isDrawer ? (tool === "fill" ? "copy" : "crosshair") : "default" }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+          />
+        </div>
+      </div>
     </div>
   );
 }

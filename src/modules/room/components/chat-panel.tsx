@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CheckCircle2, Send } from "lucide-react";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { cn } from "@/lib/utils";
 
@@ -39,29 +37,54 @@ export function ChatPanel({ isDrawer }: ChatPanelProps) {
   }
 
   return (
-    <div className="flex h-full flex-col rounded-lg border bg-card">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border-[3px] border-play-ink bg-white font-play-body shadow-[5px_5px_0_var(--color-play-ink)]">
       <div ref={listRef} className="flex-1 overflow-y-auto p-3">
-        {chatMessages.length === 0 && <p className="text-sm text-muted-foreground">No messages yet.</p>}
+        {chatMessages.length === 0 && <p className="text-sm font-bold text-play-ink/40">No messages yet — say hi!</p>}
         <ul className="flex flex-col gap-1.5">
-          {chatMessages.map((message) => (
-            <li key={message.id} className={cn("text-sm", message.isSystem && "italic text-muted-foreground")}>
-              {!message.isSystem && <span className="font-medium">{message.name}: </span>}
-              {message.message}
-            </li>
-          ))}
+          {chatMessages.map((message) =>
+            message.isSystem ? (
+              <li
+                key={message.id}
+                className={cn(
+                  "text-sm font-bold",
+                  message.isCorrectGuess
+                    ? "flex items-center gap-1.5 rounded-xl border-2 border-play-green bg-play-green/15 px-2.5 py-1 font-play-display text-play-green"
+                    : "text-play-ink/45 italic",
+                )}
+              >
+                {message.isCorrectGuess && <CheckCircle2 className="size-3.5 shrink-0" />}
+                {message.message}
+              </li>
+            ) : (
+              <li key={message.id} className="flex">
+                <span className="rounded-2xl border-2 border-play-ink bg-play-cream px-3 py-1.5 text-sm">
+                  <span className="font-play-display font-bold text-play-blue">{message.name}: </span>
+                  <span className="text-play-ink">{message.message}</span>
+                </span>
+              </li>
+            ),
+          )}
         </ul>
       </div>
-      <form className="flex gap-2 border-t p-2" onSubmit={handleSubmit}>
-        <Input
+      <form className="flex gap-2 border-t-[3px] border-play-ink p-2.5" onSubmit={handleSubmit}>
+        <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder={isDrawer ? "You can't chat while drawing" : "Type your guess..."}
           maxLength={280}
           disabled={isDrawer}
+          className={cn(
+            "min-w-0 flex-1 rounded-xl border-2 border-play-ink bg-white px-3 py-2 text-sm font-bold text-play-ink outline-none placeholder:text-play-ink/35",
+            isDrawer && "cursor-not-allowed opacity-50",
+          )}
         />
-        <Button type="submit" size="icon" disabled={isDrawer || sending || !draft.trim()}>
+        <button
+          type="submit"
+          disabled={isDrawer || sending || !draft.trim()}
+          className="flex size-9 shrink-0 items-center justify-center rounded-xl border-2 border-play-ink bg-play-orange text-white shadow-[2px_2px_0_var(--color-play-ink)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
           <Send className="size-4" />
-        </Button>
+        </button>
       </form>
     </div>
   );

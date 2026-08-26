@@ -18,7 +18,7 @@ const COPY = {
   closed: {
     icon: DoorClosed,
     title: "This room has closed",
-    description: "The room was empty for too long and was automatically closed.",
+    description: "The room sat empty (or with just one player) for too long and was automatically closed.",
   },
 } as const;
 

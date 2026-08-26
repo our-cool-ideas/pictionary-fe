@@ -7,6 +7,8 @@ import type { ROOM_VISIBILITY } from "@/lib/enums/room-visibility.enum";
 export interface RoomPlayer {
   playerId: string;
   name: string;
+  /** A closed set of ids matching modules/player/constants/avatar.constant.ts — look up the actual color/glyph via getAvatarOption(). */
+  avatarId: string;
   isGuest: boolean;
   isHost: boolean;
   connected: boolean;
@@ -27,6 +29,7 @@ export interface RoomState {
   settings: RoomSettings;
   createdAt: number;
   emptySince: number | null;
+  aloneSince: number | null;
   players: RoomPlayer[];
 }
 
@@ -38,4 +41,6 @@ export interface ChatMessage {
   sentAt: number;
   /** A server-generated announcement (correct guess, turn ended) rendered distinctly from a player's own words. */
   isSystem?: boolean;
+  /** Narrows isSystem down to specifically "someone guessed right" — ChatPanel highlights these in green instead of the generic muted system style. */
+  isCorrectGuess?: boolean;
 }

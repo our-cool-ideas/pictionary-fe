@@ -33,8 +33,9 @@ export interface RoomSessionActions {
     categoryId: string;
     maxPlayers?: number;
     visibility: ROOM_VISIBILITY;
+    avatarId: string;
   }) => Promise<RoomActionResult>;
-  joinRoom: (input: { roomCode: string; name: string }) => Promise<RoomActionResult>;
+  joinRoom: (input: { roomCode: string; name: string; avatarId: string }) => Promise<RoomActionResult>;
   leaveRoom: () => Promise<void>;
   kickPlayer: (playerId: string) => Promise<ActionResult>;
   sendMessage: (message: string) => Promise<ActionResult>;
