@@ -12,4 +12,23 @@ export const STROKE_FLUSH_INTERVAL_MS = 60;
 export const DEFAULT_STROKE_COLOR = "#171717";
 export const DEFAULT_STROKE_WIDTH = 4;
 
-export const STROKE_COLOR_SWATCHES = ["#171717", "#ef4444", "#3b82f6", "#22c55e", "#eab308", "#a855f7", "#f97316", "#ffffff"];
+export const STROKE_COLOR_SWATCHES = [
+  "#171717",
+  "#ffffff",
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#14b8a6",
+  "#3b82f6",
+  "#6366f1",
+  "#a855f7",
+  "#ec4899",
+  "#78350f",
+];
+
+/** Brush-size presets shown as buttons in the toolbar (thin, default,
+ * thick, extra-thick) — not a continuous slider, so every option stays
+ * the same size/shape as the rest of the toolbar's buttons instead of
+ * introducing a differently-shaped control. */
+export const STROKE_WIDTH_PRESETS = [2, 4, 8, 14];

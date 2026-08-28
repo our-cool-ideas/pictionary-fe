@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Send } from "lucide-react";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
+import { TurnStatusHeader } from "@/modules/room/components/turn-status-header";
 import { cn } from "@/lib/utils";
 
 interface ChatPanelProps {
@@ -38,6 +39,10 @@ export function ChatPanel({ isDrawer }: ChatPanelProps) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border-[3px] border-play-ink bg-white font-play-body shadow-[5px_5px_0_var(--color-play-ink)]">
+      {/* Pinned at the top of this card, not floating over the canvas
+          anymore — see TurnStatusHeader. Renders nothing (null) pre-game
+          and in any other state with no turn/last-result to show. */}
+      <TurnStatusHeader />
       <div ref={listRef} className="flex-1 overflow-y-auto p-3">
         {chatMessages.length === 0 && <p className="text-sm font-bold text-play-ink/40">No messages yet — say hi!</p>}
         <ul className="flex flex-col gap-1.5">

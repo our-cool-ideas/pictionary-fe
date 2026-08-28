@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     "cec2-103-207-58-41.ngrok-free.app",
     "48f4-103-207-58-41.ngrok-free.app",
+    "3f4a-103-207-58-41.ngrok-free.app",
+    "3665-103-207-58-41.ngrok-free.app",
   ],
 };
 

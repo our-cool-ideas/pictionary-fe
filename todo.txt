@@ -1,0 +1,9 @@
+- If host leaves, then everyone can play
+- active room should close all existing rooms - One person shouldn't be able to have more than active room
+- Drawing word should always be visible
+- Timer color animation should be there, red during last
+- Start room section needs to be bigger with more labels
+- Masterpeice should be there
+- At the end, everyone should know the answer
+- If you have guessed the answer then the input box should be disabled
+- Let's have two options for the drawer to pick
