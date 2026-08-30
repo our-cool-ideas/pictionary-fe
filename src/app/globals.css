@@ -170,6 +170,22 @@
   }
 }
 
+/* A quick squash-and-settle "pop", played once whenever the turn
+   progress bar crosses into a new urgency color (see TurnProgressBar) —
+   remounted via a `key` change rather than toggled, so it always plays
+   fresh instead of needing manual animation-reset bookkeeping. */
+@keyframes play-progress-pop {
+  0% {
+    transform: scale(1.12);
+  }
+  55% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

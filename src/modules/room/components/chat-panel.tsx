@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { TurnStatusHeader } from "@/modules/room/components/turn-status-header";
 import { cn } from "@/lib/utils";
@@ -44,38 +44,51 @@ export function ChatPanel({ isDrawer }: ChatPanelProps) {
           and in any other state with no turn/last-result to show. */}
       <TurnStatusHeader />
       <div ref={listRef} className="flex-1 overflow-y-auto p-3">
-        {chatMessages.length === 0 && <p className="text-sm font-bold text-play-ink/40">No messages yet — say hi!</p>}
+        {chatMessages.length === 0 && (
+          <p className="text-sm font-bold text-play-ink/40">
+            No messages yet — say hi!
+          </p>
+        )}
+        {/* Plain text, no bubble/pill/border around any of these — just
+            weight/style/color distinguishing the three kinds of line
+            this list ever shows: a turn-level announcement (bold
+            italic), a correct guess (blue), or someone's own message
+            (bold name prefix + regular-weight text). */}
         <ul className="flex flex-col gap-1.5">
           {chatMessages.map((message) =>
             message.isSystem ? (
               <li
                 key={message.id}
                 className={cn(
-                  "text-sm font-bold",
+                  "text-sm",
                   message.isCorrectGuess
-                    ? "flex items-center gap-1.5 rounded-xl border-2 border-play-green bg-play-green/15 px-2.5 py-1 font-play-display text-play-green"
-                    : "text-play-ink/45 italic",
+                    ? "text-play-blue font-bold"
+                    : "font-bold text-play-ink/70 italic",
                 )}
               >
-                {message.isCorrectGuess && <CheckCircle2 className="size-3.5 shrink-0" />}
                 {message.message}
               </li>
             ) : (
-              <li key={message.id} className="flex">
-                <span className="rounded-2xl border-2 border-play-ink bg-play-cream px-3 py-1.5 text-sm">
-                  <span className="font-play-display font-bold text-play-blue">{message.name}: </span>
-                  <span className="text-play-ink">{message.message}</span>
+              <li key={message.id} className="text-sm text-play-ink">
+                <span className="font-play-display font-bold text-play-blue">
+                  {message.name}:{" "}
                 </span>
+                {message.message}
               </li>
             ),
           )}
         </ul>
       </div>
-      <form className="flex gap-2 border-t-[3px] border-play-ink p-2.5" onSubmit={handleSubmit}>
+      <form
+        className="flex gap-2 border-t-[3px] border-play-ink p-2.5"
+        onSubmit={handleSubmit}
+      >
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={isDrawer ? "You can't chat while drawing" : "Type your guess..."}
+          placeholder={
+            isDrawer ? "You can't chat while drawing" : "Type your guess..."
+          }
           maxLength={280}
           disabled={isDrawer}
           className={cn(

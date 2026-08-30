@@ -6,6 +6,8 @@
  * a dragged line or shape down to the two primitives the backend already
  * understands: a line is a 2-point stroke, an outline is a closed
  * poly-line stroke, and "filled" is that same outline stroke followed by
- * a bucket-fill click at its center.
+ * a bucket-fill click at its center. "eraser" doesn't need one either —
+ * it's just a normal stroke painted in the canvas's own background color
+ * (see CanvasBoard), not a true pixel-clearing wire primitive.
  */
-export type CanvasTool = "pen" | "fill" | "line" | "square" | "square-filled" | "circle" | "circle-filled";
+export type CanvasTool = "pen" | "eraser" | "fill" | "line" | "square" | "square-filled" | "circle" | "circle-filled";

@@ -4,45 +4,29 @@ import { useEffect, useState } from "react";
 import { useSocket } from "@/hooks/use-socket";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { CanvasBoard } from "@/modules/room/components/canvas-board";
-import { CanvasToolbar } from "@/modules/room/components/canvas-toolbar";
 import { Scoreboard } from "@/modules/room/components/scoreboard";
 import { ChatPanel } from "@/modules/room/components/chat-panel";
-import { TurnWordModal } from "@/modules/room/components/turn-word-modal";
 import { CorrectGuessCelebration } from "@/modules/room/components/correct-guess-celebration";
 import {
   DEFAULT_STROKE_COLOR,
   DEFAULT_STROKE_WIDTH,
 } from "@/modules/room/constants/canvas.constant";
 import type { CanvasTool } from "@/modules/room/types/canvas-tool.type";
-import clsx from "clsx";
 
 /**
- * A fixed 12-column layout, left to right — not an organic flex-1 split:
- *   - Players (+ toolbar when drawing): 3.5 columns (29.1667%, since
- *     Tailwind's built-in fractions only go to twelfths and this isn't
- *     one — `w-[29.1667%]`). Normally the players list alone fills all
- *     3.5; the instant you're the drawer, a toolbar strip joins it — but
- *     the toolbar's width is sized to its own button grid, not a
- *     proportional flex share of these 3.5 columns, and its HEIGHT
- *     stretches to match the players card beside it (plain flex default
- *     stretch — no `self-start`), and the controls inside size themselves
- *     to fill that height (see CanvasToolbar's container-query sizing)
- *     rather than leaving a fixed-size toolbar floating in a taller box.
- *     The players list (`flex-1`) takes whatever's left in the group,
- *     same as always.
- *   - Canvas + chat: always exactly 6.5 columns (`w-[54.1667%]`), full
- *     stop. This never changes size depending on drawer/guesser state or
- *     on the canvas's own aspect ratio — the canvas is width-driven to
- *     fill these 6.5 columns exactly (see CanvasBoard), and the chat
- *     panel below it is a plain `w-full` child of the same column, so the
- *     two are ALWAYS identically wide. No shrink-to-fit, no contain-fit
- *     centering — both of those let the canvas and chat drift to
- *     different widths depending on viewport height, which is exactly
- *     what this avoids.
- *   - Reserved ad space: 2 columns (`w-1/6`).
- * (3.5 + 6.5 + 2 = 12.) Each group is its own div below, on purpose, so
- * the page reads the same way this structure does at a glance instead of
- * needing the JSX decoded.
+ * A fixed 16-column CSS grid: players always 5 columns (`col-span-5`,
+ * regardless of drawer/guesser state — the tool picker lives inside the
+ * canvas now, a popover off a single FAB rather than a permanent sibling
+ * column, so nothing needs to shrink to make room for it anymore — see
+ * CanvasBoard), canvas + chat always 9 (`col-span-9`), reserved ad space
+ * 2 (`col-span-2`). This row's height is content-driven, not forced to
+ * the viewport: exactly as tall as its tallest column (almost always
+ * canvas+chat, since the canvas is full-bleed width-driven — see
+ * CanvasBoard), and every OTHER column stretches to match via CSS
+ * Grid's own default `align-items: stretch`. When that's shorter than
+ * the viewport, the root below is `justify-center`, so the leftover
+ * splits evenly above/below instead of collecting as dead space
+ * underneath.
  */
 export function GameBoard() {
   const { playerId } = useSocket();
@@ -51,9 +35,9 @@ export function GameBoard() {
     actions: { kickPlayer, clearCanvas, undo, redo },
   } = useRoomSession();
 
-  // Toolbar state lives here, not in CanvasBoard — the toolbar itself
-  // renders as part of the players column here (see below), so both it
-  // and the canvas need the same color/tool/width values.
+  // Toolbar state lives here, not in CanvasBoard — but the toolbar's own
+  // UI renders inside CanvasBoard now, so these (plus the actions below)
+  // just get passed straight through as props.
   const [color, setColor] = useState(DEFAULT_STROKE_COLOR);
   const [tool, setTool] = useState<CanvasTool>("pen");
   const [width, setWidth] = useState(DEFAULT_STROKE_WIDTH);
@@ -69,25 +53,24 @@ export function GameBoard() {
 
   const isDrawer = state.currentTurn?.drawerId === playerId;
   const isHost = state.room.hostPlayerId === playerId;
-  const gameStarted =
-    state.currentTurn !== null || state.lastTurnResult !== null;
   const scores =
     state.currentTurn?.scores ?? state.lastTurnResult?.scores ?? {};
 
-  const showCanvasToolbar = isDrawer && gameStarted;
-
   return (
-    <div className="flex h-screen flex-col bg-play-cream px-6 py-5 lg:px-14 lg:py-8">
-      <div className="grid grid-cols-16 gap-4">
-        <div
-          className={clsx(
-            "rounded-2xl border-[3px] border-play-ink bg-white p-3 shadow-[5px_5px_0_var(--color-play-ink)]",
-            showCanvasToolbar ? "col-span-3" : "col-span-5",
-          )}
-        >
+    <div className="flex h-screen flex-col justify-center overflow-hidden bg-play-cream px-6 py-5 lg:px-24 lg:py-8">
+      {/* No forced height here (no `flex-1`/`h-full`) — this grid is
+          exactly as tall as its content needs (see the file-level comment
+          above for why), capped at `max-h-full` so it can never exceed
+          the space `justify-center` above has to work with. */}
+      <div className="grid max-h-full grid-cols-12 gap-4">
+        <div className="col-span-3 flex h-full min-h-0 flex-col rounded-2xl border-[3px] border-play-ink bg-white p-3 shadow-[5px_5px_0_var(--color-play-ink)]">
           <p className="mb-2 shrink-0 px-0.5 font-play-display text-xs font-bold tracking-wide text-play-ink/50 uppercase">
             Players ({state.room.players.length})
           </p>
+          {/* This card is an actual flex column (`flex h-full flex-col`
+              above), which is what makes `min-h-0 flex-1` here do
+              anything — a long player list scrolls inside this card
+              instead of stretching the card (and the whole page) taller. */}
           <div className="min-h-0 flex-1 overflow-y-auto">
             <Scoreboard
               players={state.room.players}
@@ -100,9 +83,10 @@ export function GameBoard() {
           </div>
         </div>
 
-        {showCanvasToolbar && (
-          <div className="col-span-2">
-            <CanvasToolbar
+        <div className="col-span-7 flex min-h-0 flex-col justify-center gap-4">
+          <div className="shrink-0">
+            <CanvasBoard
+              isDrawer={isDrawer}
               color={color}
               onColorChange={setColor}
               tool={tool}
@@ -115,17 +99,6 @@ export function GameBoard() {
               canUndo={state.strokes.length > 0}
             />
           </div>
-        )}
-
-        <div className="col-span-9">
-          <div className="shrink-0">
-            <CanvasBoard
-              isDrawer={isDrawer}
-              color={color}
-              tool={tool}
-              width={width}
-            />
-          </div>
           <div className="min-h-0 max-h-[560px] flex-1">
             <ChatPanel isDrawer={isDrawer} />
           </div>
@@ -134,7 +107,6 @@ export function GameBoard() {
         <div className="col-span-2 border-[3px]"></div>
       </div>
 
-      <TurnWordModal />
       <CorrectGuessCelebration />
     </div>
   );

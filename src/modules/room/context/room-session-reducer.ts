@@ -31,7 +31,7 @@ export function roomSessionReducer(state: RoomSessionState, action: RoomSessionA
       return {
         ...state,
         correctGuesserIds: [...state.correctGuesserIds, action.payload.playerId],
-        chatMessages: [...state.chatMessages, systemMessage(`${action.payload.name} guessed the word! 🎉`, true)],
+        chatMessages: [...state.chatMessages, systemMessage(`${action.payload.name} has hit the answer`, true)],
       };
 
     case "TURN_ENDED":

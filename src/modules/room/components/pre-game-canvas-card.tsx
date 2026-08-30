@@ -14,10 +14,9 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from "@/modules/room/constants/canvas.con
  * the real drawable canvas the moment a turn starts (see CanvasBoard) —
  * this is the only place Copy Link / Start Game live now that the
  * room-metadata card is gone entirely. `w-full` + the canvas's own fixed
- * aspect ratio (not `h-full`) — this now sits in a fixed-width,
- * content-height column, not a flex-1 slot with height to fill, so it
- * needs the same width-driven sizing the real canvas uses, matching that
- * footprint exactly so nothing visibly jumps when the game starts.
+ * aspect ratio (not `h-full`) — matches the real canvas's full-bleed,
+ * width-driven sizing exactly, so nothing visibly jumps in size when the
+ * game starts.
  */
 export function PreGameCanvasCard() {
   const { playerId } = useSocket();
