@@ -3,10 +3,23 @@
   # NEXT_PUBLIC_* var into the client bundle by design, so Netlify's
   # secrets scanner flags it as a "leaked secret" on every build. It isn't
   # one (see .env.local.example's own comment on why this URL is safe to
-  # expose). Genuine secrets — JWT_SECRET, BACKEND_API_URL (see
-  # src/lib/env.ts) — are deliberately NOT listed here, so the scanner
-  # still catches those if they were ever accidentally bundled client-side.
-  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SOCKET_URL"
+  # expose).
+  #
+  # BACKEND_API_URL is listed here too, but for a different reason: right
+  # now it's configured in Netlify to the *same literal value* as
+  # NEXT_PUBLIC_SOCKET_URL (same backend process serves both REST and
+  # Socket.IO on one host:port). The scanner does plain string matching,
+  # so the one legitimate NEXT_PUBLIC_SOCKET_URL occurrence in the client
+  # bundle also matches BACKEND_API_URL's value and gets double-flagged —
+  # it's not actually appearing anywhere BACKEND_API_URL-specific.
+  # ⚠️ If BACKEND_API_URL is ever set to something that genuinely differs
+  # from NEXT_PUBLIC_SOCKET_URL (a different host, embedded credentials,
+  # an internal-only address), remove it from this list — otherwise a
+  # real client-side leak of it would go undetected.
+  #
+  # JWT_SECRET is NOT listed here — see SECRETS_SCAN_OMIT_PATHS below for
+  # why it doesn't need to be.
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SOCKET_URL,BACKEND_API_URL"
 
   # Turbopack's persistent build cache snapshots process.env for its own
   # cache-invalidation bookkeeping ("did an env var change since last
