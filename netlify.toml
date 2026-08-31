@@ -1,0 +1,20 @@
+[build.environment]
+  # NEXT_PUBLIC_SOCKET_URL is intentionally public — Next.js inlines every
+  # NEXT_PUBLIC_* var into the client bundle by design, so Netlify's
+  # secrets scanner flags it as a "leaked secret" on every build. It isn't
+  # one (see .env.local.example's own comment on why this URL is safe to
+  # expose). Genuine secrets — JWT_SECRET, BACKEND_API_URL (see
+  # src/lib/env.ts) — are deliberately NOT listed here, so the scanner
+  # still catches those if they were ever accidentally bundled client-side.
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SOCKET_URL"
+
+  # Turbopack's persistent build cache snapshots process.env for its own
+  # cache-invalidation bookkeeping ("did an env var change since last
+  # build") — not because anything server-side actually inlines these
+  # values into served code (JWT_SECRET, e.g., is only ever a runtime
+  # process.env read in server-only route handlers, see src/lib/env.ts).
+  # The cache directory itself is never served to users or shipped in the
+  # deployed function, so excluding it here doesn't weaken protection —
+  # a real leak into .next/static, .next/server, or the function bundle
+  # would still be caught.
+  SECRETS_SCAN_OMIT_PATHS = ".netlify/.next/cache/**"
