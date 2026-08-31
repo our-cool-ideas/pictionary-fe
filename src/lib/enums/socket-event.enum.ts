@@ -28,8 +28,8 @@ export enum SOCKET_EVENT {
   GAME_CANVAS_CLEARED = "game:canvas_cleared",
   GAME_CORRECT_GUESS = "game:correct_guess",
   GAME_TURN_ENDED = "game:turn_ended",
-  GAME_OVER = "game:over",
 
   GAME_YOUR_WORD = "game:your_word",
   GAME_STROKE_HISTORY = "game:stroke_history",
+  GAME_CLOSE_GUESS = "game:close_guess",
 }

@@ -3,7 +3,6 @@
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { JoinRoomForm } from "@/modules/room/components/join-room-form";
 import { GameBoard } from "@/modules/room/components/game-board";
-import { GameOverScreen } from "@/modules/room/components/game-over-screen";
 import { RoomNoticeScreen } from "@/modules/room/components/room-notice-screen";
 
 interface RoomPageProps {
@@ -22,8 +21,6 @@ export function RoomPage({ code }: RoomPageProps) {
   if (!state.room || state.room.code.toLowerCase() !== code.toLowerCase()) {
     return <JoinRoomForm code={code} />;
   }
-
-  if (state.gameOver) return <GameOverScreen gameOver={state.gameOver} players={state.room.players} />;
 
   // Joining lands straight on the drawing-room HUD now — no separate waiting
   // lobby screen. GameBoard itself shows a pre-game Start/Copy-link banner

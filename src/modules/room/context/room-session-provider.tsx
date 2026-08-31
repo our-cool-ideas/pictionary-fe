@@ -5,13 +5,13 @@ import { useSocket } from "@/hooks/use-socket";
 import { SOCKET_EVENT } from "@/lib/enums/socket-event.enum";
 import type { ROOM_VISIBILITY } from "@/lib/enums/room-visibility.enum";
 import { emitWithAck } from "@/lib/socket-emit";
+import { playCorrectGuessSound } from "@/lib/sound";
 import { roomSessionReducer } from "./room-session-reducer";
 import { initialRoomSessionState, type RoomSessionState } from "./room-session.type";
 import type { ChatMessage, RoomState } from "@/modules/room/types/room.type";
 import type {
   CorrectGuessPayload,
   DrawAction,
-  GameOverPayload,
   StrokePoint,
   TurnEndedPayload,
   TurnStartedPayload,
@@ -32,6 +32,7 @@ export interface RoomSessionActions {
     name: string;
     categoryId: string;
     maxPlayers?: number;
+    targetScore?: number;
     visibility: ROOM_VISIBILITY;
     avatarId: string;
   }) => Promise<RoomActionResult>;
@@ -77,9 +78,14 @@ export function RoomSessionProvider({ children }: { children: React.ReactNode })
     const onRoomClosed = () => dispatch({ type: "ROOM_CLOSED" });
     const onTurnStarted = (payload: TurnStartedPayload) => dispatch({ type: "TURN_STARTED", payload });
     const onYourWord = (payload: { word: string }) => dispatch({ type: "YOUR_WORD", word: payload.word });
-    const onCorrectGuess = (payload: CorrectGuessPayload) => dispatch({ type: "CORRECT_GUESS", payload });
+    const onCorrectGuess = (payload: CorrectGuessPayload) => {
+      dispatch({ type: "CORRECT_GUESS", payload });
+      // For everyone in the room, not just the guesser — a short chime,
+      // not tied to whatever ChatPanel/canvas happen to be doing visually.
+      playCorrectGuessSound();
+    };
+    const onCloseGuess = (payload: { guess: string }) => dispatch({ type: "CLOSE_GUESS", guess: payload.guess });
     const onTurnEnded = (payload: TurnEndedPayload) => dispatch({ type: "TURN_ENDED", payload });
-    const onGameOver = (payload: GameOverPayload) => dispatch({ type: "GAME_OVER", payload });
     const onStrokeBroadcast = (stroke: DrawAction) => dispatch({ type: "STROKE_BROADCAST", stroke });
     const onStrokeHistory = (payload: { strokes: DrawAction[] }) => dispatch({ type: "STROKE_HISTORY", strokes: payload.strokes });
     const onCanvasCleared = () => dispatch({ type: "CANVAS_CLEARED" });
@@ -95,8 +101,8 @@ export function RoomSessionProvider({ children }: { children: React.ReactNode })
     socket.on(SOCKET_EVENT.GAME_TURN_STARTED, onTurnStarted);
     socket.on(SOCKET_EVENT.GAME_YOUR_WORD, onYourWord);
     socket.on(SOCKET_EVENT.GAME_CORRECT_GUESS, onCorrectGuess);
+    socket.on(SOCKET_EVENT.GAME_CLOSE_GUESS, onCloseGuess);
     socket.on(SOCKET_EVENT.GAME_TURN_ENDED, onTurnEnded);
-    socket.on(SOCKET_EVENT.GAME_OVER, onGameOver);
     socket.on(SOCKET_EVENT.GAME_STROKE_BROADCAST, onStrokeBroadcast);
     socket.on(SOCKET_EVENT.GAME_STROKE_HISTORY, onStrokeHistory);
     socket.on(SOCKET_EVENT.GAME_CANVAS_CLEARED, onCanvasCleared);
@@ -113,8 +119,8 @@ export function RoomSessionProvider({ children }: { children: React.ReactNode })
       socket.off(SOCKET_EVENT.GAME_TURN_STARTED, onTurnStarted);
       socket.off(SOCKET_EVENT.GAME_YOUR_WORD, onYourWord);
       socket.off(SOCKET_EVENT.GAME_CORRECT_GUESS, onCorrectGuess);
+      socket.off(SOCKET_EVENT.GAME_CLOSE_GUESS, onCloseGuess);
       socket.off(SOCKET_EVENT.GAME_TURN_ENDED, onTurnEnded);
-      socket.off(SOCKET_EVENT.GAME_OVER, onGameOver);
       socket.off(SOCKET_EVENT.GAME_STROKE_BROADCAST, onStrokeBroadcast);
       socket.off(SOCKET_EVENT.GAME_STROKE_HISTORY, onStrokeHistory);
       socket.off(SOCKET_EVENT.GAME_CANVAS_CLEARED, onCanvasCleared);

@@ -6,12 +6,12 @@ import { SocketContext } from "@/components/socket-provider";
 import { RoomSessionContext, type RoomSessionActions } from "@/modules/room/context/room-session-provider";
 import type { RoomSessionState } from "@/modules/room/context/room-session.type";
 import { GameBoard } from "@/modules/room/components/game-board";
-import { GameOverScreen } from "@/modules/room/components/game-over-screen";
 import { RoomNoticeScreen } from "@/modules/room/components/room-notice-screen";
-import { AVATAR_OPTIONS } from "@/modules/player/constants/avatar.constant";
+import { AVATAR_OPTIONS, DEFAULT_AVATAR_ID } from "@/modules/player/constants/avatar.constant";
+import { TURN_TRANSITION_DELAY_MS } from "@/modules/room/constants/turn.constant";
 import { ROOM_VISIBILITY } from "@/lib/enums/room-visibility.enum";
 import type { RoomPlayer, RoomState, ChatMessage } from "@/modules/room/types/room.type";
-import type { DrawAction, GameOverPayload, TurnEndedPayload, TurnStartedPayload } from "@/modules/room/types/game.type";
+import type { DrawAction, TurnEndedPayload, TurnStartedPayload } from "@/modules/room/types/game.type";
 import { cn } from "@/lib/utils";
 
 // A fake but stable identity for "you" — GameBoard/ChatPanel/etc. only
@@ -23,11 +23,11 @@ const AVATAR_IDS = AVATAR_OPTIONS.map((a) => a.id);
 const MOCK_WORD = "Rainbow";
 
 function buildPlayers(count: number): RoomPlayer[] {
-  const you: RoomPlayer = { playerId: YOU_ID, name: "You", avatarId: AVATAR_IDS[0] ?? "blue", isGuest: true, isHost: true, connected: true, joinedAt: Date.now() };
+  const you: RoomPlayer = { playerId: YOU_ID, name: "You", avatarId: AVATAR_IDS[0] ?? DEFAULT_AVATAR_ID, isGuest: true, isHost: true, connected: true, joinedAt: Date.now() };
   const bots: RoomPlayer[] = Array.from({ length: Math.max(0, count - 1) }, (_, i) => ({
     playerId: `bot-${i + 1}`,
     name: BOT_NAMES[i % BOT_NAMES.length] ?? `Bot ${i + 1}`,
-    avatarId: AVATAR_IDS[(i + 1) % AVATAR_IDS.length] ?? "blue",
+    avatarId: AVATAR_IDS[(i + 1) % AVATAR_IDS.length] ?? DEFAULT_AVATAR_ID,
     isGuest: true,
     isHost: false,
     connected: true,
@@ -52,6 +52,14 @@ function buildScores(players: RoomPlayer[]): Record<string, number> {
   return Object.fromEntries(players.map((p, i) => [p.playerId, Math.max(0, (players.length - i) * 15 - 5)]));
 }
 
+// A plain module-level helper (not called during render) — same reasoning
+// as makeTurn/buildRoom below using Date.now() directly: react-hooks'
+// purity check flags an impure call made straight in a component body,
+// even one that only actually runs from an event handler like goToView.
+function mockNextTurnAt(): number {
+  return Date.now() + TURN_TRANSITION_DELAY_MS;
+}
+
 function makeTurn(players: RoomPlayer[], drawerIsYou: boolean, turnNumber: number): TurnStartedPayload | null {
   const drawer = drawerIsYou ? players[0] : (players[1] ?? players[0]);
   if (!drawer) return null;
@@ -70,20 +78,19 @@ function seedChatMessages(players: RoomPlayer[]): ChatMessage[] {
   return msgs;
 }
 
-type ViewMode = "pre-game" | "playing" | "turn-ended" | "game-over" | "kicked" | "closed";
+type ViewMode = "pre-game" | "playing" | "turn-ended" | "kicked" | "closed";
 
 const VIEW_MODE_LABEL: Record<ViewMode, string> = {
   "pre-game": "Pre-game",
   playing: "Playing",
   "turn-ended": "Turn ended",
-  "game-over": "Game over",
   kicked: "Kicked",
   closed: "Room closed",
 };
 
 /**
  * `/test` — a local-only sandbox that renders the exact same screens
- * RoomPage would (GameBoard, GameOverScreen, RoomNoticeScreen) against
+ * RoomPage would (GameBoard, RoomNoticeScreen) against
  * fabricated state instead of a real socket connection, so CSS/layout
  * work on the game HUD doesn't require actually running a room with a
  * second browser tab acting as another player every time. Nothing here
@@ -109,7 +116,6 @@ export function GameBoardSandboxPage() {
 
   const [currentTurn, setCurrentTurn] = useState<TurnStartedPayload | null>(() => makeTurn(buildPlayers(4), true, 1));
   const [lastTurnResult, setLastTurnResult] = useState<TurnEndedPayload | null>(null);
-  const [gameOver, setGameOver] = useState<GameOverPayload | null>(null);
   const [correctGuesserIds, setCorrectGuesserIds] = useState<string[]>([]);
   const [yourWord, setYourWord] = useState<string | null>(MOCK_WORD);
   const [youWereKicked, setYouWereKicked] = useState(false);
@@ -121,7 +127,7 @@ export function GameBoardSandboxPage() {
   // needing the actual server round trip STROKE_HISTORY relies on.
   const redoStackRef = useRef<DrawAction[]>([]);
 
-  const viewMode: ViewMode = youWereKicked ? "kicked" : roomClosed ? "closed" : gameOver ? "game-over" : currentTurn ? "playing" : lastTurnResult ? "turn-ended" : "pre-game";
+  const viewMode: ViewMode = youWereKicked ? "kicked" : roomClosed ? "closed" : currentTurn ? "playing" : lastTurnResult ? "turn-ended" : "pre-game";
 
   function goToView(mode: ViewMode) {
     setYouWereKicked(mode === "kicked");
@@ -129,7 +135,6 @@ export function GameBoardSandboxPage() {
     if (mode === "pre-game") {
       setCurrentTurn(null);
       setLastTurnResult(null);
-      setGameOver(null);
       setCorrectGuesserIds([]);
       setYourWord(null);
       setStrokes([]);
@@ -139,7 +144,6 @@ export function GameBoardSandboxPage() {
       if (!turn) return;
       setCurrentTurn(turn);
       setLastTurnResult(null);
-      setGameOver(null);
       setCorrectGuesserIds([]);
       setYourWord(turn.drawerId === YOU_ID ? MOCK_WORD : null);
       setStrokes([]);
@@ -147,15 +151,17 @@ export function GameBoardSandboxPage() {
       setChatMessages((prev) => [...prev, systemMessage(`${turn.drawerName} is drawing now — go!`)]);
     } else if (mode === "turn-ended") {
       const drawerId = currentTurn?.drawerId ?? players[0]?.playerId ?? YOU_ID;
-      setLastTurnResult({ word: MOCK_WORD, drawerId, correctGuesserIds, scores: currentTurn?.scores ?? buildScores(players) });
+      setLastTurnResult({
+        word: MOCK_WORD,
+        drawerId,
+        correctGuesserIds,
+        scores: currentTurn?.scores ?? buildScores(players),
+        reason: "timeout",
+        nextTurnAt: mockNextTurnAt(),
+      });
       setCurrentTurn(null);
-      setGameOver(null);
       setYourWord(null);
       setChatMessages((prev) => [...prev, systemMessage(`Turn over — the word was "${MOCK_WORD}".`)]);
-    } else if (mode === "game-over") {
-      const winner = [...players].sort((a, b) => (buildScores(players)[b.playerId] ?? 0) - (buildScores(players)[a.playerId] ?? 0))[0];
-      setGameOver({ winnerId: winner?.playerId ?? null, winnerName: winner?.name ?? "You", scores: buildScores(players) });
-      setCurrentTurn(null);
     }
   }
 
@@ -173,7 +179,6 @@ export function GameBoardSandboxPage() {
     yourWord,
     correctGuesserIds,
     lastTurnResult,
-    gameOver,
     chatMessages,
     strokes,
     youWereKicked,
@@ -238,7 +243,6 @@ export function GameBoardSandboxPage() {
   function renderScreen() {
     if (youWereKicked) return <RoomNoticeScreen variant="kicked" />;
     if (roomClosed) return <RoomNoticeScreen variant="closed" />;
-    if (gameOver) return <GameOverScreen gameOver={gameOver} players={players} />;
     return <GameBoard />;
   }
 

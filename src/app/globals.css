@@ -17,7 +17,15 @@
      pick these up; the admin panel never does. See modules/player's and
      modules/room's README notes on the "gamified" player theme. */
   --color-play-ink: #1a1a2e;
+  /* Cream (#fff8ec) is barely a shade off pure white — every player-app
+     PAGE background is play-sand instead now (SignInPage, RoomsPage,
+     JoinRoomForm, GameBoard), a bolder, more saturated warm tone so
+     white cards on top of it actually read as white cards on a colored
+     page. Cream itself isn't gone — CanvasToolbar's scrollbar track
+     still uses it as a small decorative accent, unrelated to any page's
+     own background — just no longer used for that purpose anywhere. */
   --color-play-cream: #fff8ec;
+  --color-play-sand: #fce2a0;
   --color-play-yellow: #ffc83d;
   --color-play-blue: #2f6feb;
   --color-play-orange: #ff7a33;
@@ -133,9 +141,10 @@
   --sidebar-ring: oklch(0.606 0.25 292.717);
 }
 
-/* Gamified player-app feedback animations — the turn-start word modal and
-   the "you guessed it right" celebration overlay both use these; kept
-   outside @theme since they're keyframes, not design tokens. */
+/* Gamified player-app feedback animation — PlayerDetailModal's pop-in;
+   kept outside @theme since it's a keyframe, not a design token. (The
+   correct-guess celebration overlay that used to share this comment block
+   is gone — that moment is announced in the chat log now, not a modal.) */
 @keyframes play-modal-pop {
   from {
     opacity: 0;
@@ -144,29 +153,6 @@
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
-  }
-}
-
-@keyframes play-correct-guess-pop {
-  0% {
-    transform: scale(0.4) rotate(-8deg);
-    opacity: 0;
-  }
-  15% {
-    transform: scale(1.15) rotate(4deg);
-    opacity: 1;
-  }
-  30% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-  78% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.9) rotate(0deg);
-    opacity: 0;
   }
 }
 

@@ -12,8 +12,8 @@ export function AvatarBadge({ avatarId, name }: AvatarBadgeProps) {
 
   return (
     <div className="flex items-center gap-2 rounded-full border-[2.5px] border-play-ink bg-white py-1.5 pr-4 pl-1.5">
-      <span className="flex size-7 items-center justify-center rounded-full border-2 border-play-ink text-white" style={{ backgroundColor: avatar.color }}>
-        <AvatarIcon icon={avatar.icon} size={15} />
+      <span className="flex size-7 items-center justify-center rounded-full border-2 border-play-ink" style={{ backgroundColor: avatar.color }}>
+        <AvatarIcon icon={avatar.icon} color={avatar.color} size={18} />
       </span>
       <span className="font-play-display text-sm font-bold text-play-ink">{name}</span>
     </div>

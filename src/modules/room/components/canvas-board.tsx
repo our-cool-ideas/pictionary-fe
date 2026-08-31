@@ -1,13 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Paintbrush } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Paintbrush, PartyPopper, DoorClosed } from "lucide-react";
 import { useSocket } from "@/hooks/use-socket";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { TurnProgressBar } from "@/modules/room/components/turn-progress-bar";
 import { PreGameCanvasCard } from "@/modules/room/components/pre-game-canvas-card";
 import { CanvasToolbar, TOOL_BUTTONS } from "@/modules/room/components/canvas-toolbar";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, STROKE_FLUSH_INTERVAL_MS } from "@/modules/room/constants/canvas.constant";
+import { TURN_TRANSITION_DELAY_MS, ROUND_TRANSITION_DELAY_MS } from "@/modules/room/constants/turn.constant";
+import { useCountdown } from "@/modules/room/hooks/use-countdown";
+import { useCountdownFraction } from "@/modules/room/hooks/use-countdown-fraction";
+import { getAvatarOption } from "@/modules/player/constants/avatar.constant";
+import { AvatarIcon } from "@/modules/player/components/avatar-icon";
 import type { CanvasTool } from "@/modules/room/types/canvas-tool.type";
 import type { DrawAction, StrokePoint } from "@/modules/room/types/game.type";
 
@@ -23,6 +29,13 @@ const ERASER_COLOR = "#ffffff";
 // timer: it's the same 5 seconds every player sees "it's your/their
 // turn," it's just the word underneath it for the drawer specifically.
 const REVEAL_DURATION_MS = 5000;
+
+// How long the last remaining connected player sits alone before this
+// client leaves the room on its own and heads back to the room list —
+// nothing server-side times this out this fast (see pictionary-be's own,
+// much longer empty-room sweep), this is purely a "don't make them sit
+// here talking to no one" nicety for the one person left.
+const SOLE_SURVIVOR_COUNTDOWN_MS = 10_000;
 
 /** Traces `points` as a smoothed path — quadratic curves through each
  * point's own midpoint with the next, rather than straight `lineTo`
@@ -375,6 +388,46 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
     return () => clearTimeout(timer);
   }, [state.currentTurn]);
 
+  // Whether a game has actually started at some point (a turn is running,
+  // or one just ended) — moved up here (it's normally computed right
+  // before the pre-game early return, much further down) specifically so
+  // the sole-survivor countdown below can gate on it: sitting alone in a
+  // room that hasn't started yet is just "waiting for friends to join",
+  // not "everyone left" — only the latter should count down to closing.
+  const gameStarted = state.currentTurn !== null || state.lastTurnResult !== null;
+
+  // Only this client's own presence counts as "am I the last one here" —
+  // if everyone else's connected flag drops to false but this player is
+  // still connected (obviously — they're the one looking at this), that's
+  // exactly the "alone in the room" moment to start the countdown for.
+  const router = useRouter();
+  const connectedPlayers = state.room?.players.filter((p) => p.connected) ?? [];
+  const isSoleSurvivor = gameStarted && connectedPlayers.length === 1 && connectedPlayers[0]?.playerId === playerId;
+  const [soleSurvivorClosesAt, setSoleSurvivorClosesAt] = useState<number | null>(null);
+
+  // Deferred into the timer callback (rather than called synchronously in
+  // the effect body) for the same react-hooks/purity + set-state-in-effect
+  // reasons as player-identity-provider.tsx's localStorage read.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSoleSurvivorClosesAt(isSoleSurvivor ? Date.now() + SOLE_SURVIVOR_COUNTDOWN_MS : null);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [isSoleSurvivor]);
+
+  const soleSurvivorSecondsLeft = useCountdown(soleSurvivorClosesAt);
+
+  useEffect(() => {
+    if (soleSurvivorClosesAt === null) return;
+    const timer = setTimeout(
+      () => {
+        void actions.leaveRoom().then(() => router.push("/rooms"));
+      },
+      Math.max(0, soleSurvivorClosesAt - Date.now()),
+    );
+    return () => clearTimeout(timer);
+  }, [soleSurvivorClosesAt, actions, router]);
+
   // Whether the reveal window (the first REVEAL_DURATION_MS of a turn)
   // is still active — the drawer can't actually draw yet during this,
   // see canDraw below. There's nothing to gate for guessers (they were
@@ -408,6 +461,30 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
   } else if (!state.currentTurn && state.lastTurnResult) {
     transitionMessage = state.lastTurnResult.drawerId === playerId ? "Your turn is over!" : "Turn over!";
   }
+  // The turn ended early because every guesser got it, not because the
+  // clock ran out — a brief celebration, but still an ORDINARY turn
+  // change (same short pause, no leaderboard). Only reaching the winning
+  // score (below) gets the big leaderboard treatment.
+  const everyoneGuessedCelebration = !state.currentTurn && state.lastTurnResult?.reason === "everyone_guessed";
+  // Someone hit the winning score — this is the one case that shows the
+  // top-3 leaderboard, for the much longer ROUND_TRANSITION_DELAY_MS,
+  // before scores reset and a fresh round starts (see game.service.ts's
+  // resetScoresForNewRound).
+  const roundWonCelebration = !state.currentTurn && state.lastTurnResult?.reason === "round_won";
+
+  // Top 3 by score, right off the just-ended turn/round's own scores
+  // snapshot (not the live scoreboard) so it doesn't shift under you if a
+  // next-turn score update lands while this is up. Only ever rendered for
+  // roundWonCelebration, but harmless to compute regardless.
+  const lastTurnResult = state.lastTurnResult;
+  const top3 =
+    lastTurnResult && state.room
+      ? [...state.room.players].sort((a, b) => (lastTurnResult.scores[b.playerId] ?? 0) - (lastTurnResult.scores[a.playerId] ?? 0)).slice(0, 3)
+      : [];
+  const nextTurnAt = lastTurnResult?.nextTurnAt ?? null;
+  const nextTransitionTotalMs = roundWonCelebration ? ROUND_TRANSITION_DELAY_MS : TURN_TRANSITION_DELAY_MS;
+  const nextTurnFraction = useCountdownFraction(nextTurnAt, nextTransitionTotalMs);
+  const nextTurnSecondsLeft = useCountdown(nextTurnAt);
 
   // Whether the tool-picker popover is open — closed by default, and
   // closed again automatically the moment a tool/size/color is actually
@@ -725,13 +802,28 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
     };
   }, []);
 
+  // Shown above everything else (higher z-index than the turn-transition
+  // overlay below) once this client is the only connected player left —
+  // gated on gameStarted above, so this can only ever fire once a game
+  // was actually running and people started leaving mid-game, never while
+  // still waiting pre-game for others to join.
+  const soleSurvivorOverlay = soleSurvivorClosesAt !== null && (
+    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-play-ink/60">
+      <div className="flex flex-col items-center gap-2 rounded-2xl border-[3px] border-play-ink bg-white px-8 py-6 text-center shadow-[4px_4px_0_var(--color-play-ink)]">
+        <DoorClosed className="size-8 text-play-ink/60" />
+        <p className="font-play-display text-lg font-bold text-play-ink">Room will close in {soleSurvivorSecondsLeft}s</p>
+        <p className="font-play-display text-sm font-bold text-play-ink/55">No more players are here</p>
+      </div>
+    </div>
+  );
+
   // Nothing's happened yet — the canvas's own footprint hosts the
   // invite/start placeholder instead of a blank drawable surface (see
   // PreGameCanvasCard). Once a turn actually starts this flips to the real
-  // canvas card and never flips back (a finished game shows GameOverScreen
-  // instead of GameBoard at all — see room-page.tsx).
-  const gameStarted = state.currentTurn !== null || state.lastTurnResult !== null;
-
+  // canvas card and never flips back — the game has no win condition and
+  // never ends on its own (rounds just keep cycling for as long as the
+  // room has players). soleSurvivorOverlay can never be showing here
+  // (isSoleSurvivor requires gameStarted), so no need to render it.
   if (!gameStarted) return <PreGameCanvasCard />;
 
   // What the closed FAB shows — the currently selected tool's own icon,
@@ -788,6 +880,50 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
                 <p className="font-play-display text-xs font-bold tracking-wide text-play-ink/50 uppercase">Your word</p>
                 <p className="font-play-display text-3xl font-bold break-all text-play-ink">{transitionMessage}</p>
               </div>
+            ) : roundWonCelebration && lastTurnResult ? (
+              // Someone reached the winning score — the ONE case with the
+              // full leaderboard treatment, up for the much longer
+              // ROUND_TRANSITION_DELAY_MS pause (see nextTurnAt) before
+              // scores reset and a fresh round starts. An ordinary turn
+              // change (below) never shows this.
+              <div
+                style={{ animation: "play-modal-pop 0.3s ease-out" }}
+                className="flex w-72 flex-col items-center gap-3 rounded-2xl border-[3px] border-play-ink bg-white px-6 py-5 text-center shadow-[4px_4px_0_var(--color-play-ink)]"
+              >
+                <div className="flex flex-col items-center gap-1 text-play-orange">
+                  <PartyPopper className="size-7" />
+                  <p className="font-play-display text-lg font-bold">{lastTurnResult.winnerName ?? "Someone"} wins the round!</p>
+                </div>
+                <div className="flex w-full flex-col gap-1.5">
+                  {top3.map((player, index) => {
+                    const avatar = getAvatarOption(player.avatarId);
+                    return (
+                      <div key={player.playerId} className="flex items-center gap-2 rounded-xl border-2 border-play-ink bg-play-sand px-2.5 py-1.5">
+                        <span className="w-4 shrink-0 font-play-display text-sm font-bold text-play-ink/50">{index + 1}</span>
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-play-ink" style={{ backgroundColor: avatar.color }}>
+                          <AvatarIcon icon={avatar.icon} color={avatar.color} size={16} />
+                        </span>
+                        <span className="flex-1 truncate text-left font-play-display text-sm font-bold text-play-ink">{player.name}</span>
+                        <span className="shrink-0 font-play-display text-sm font-bold text-play-ink tabular-nums">{lastTurnResult.scores[player.playerId] ?? 0}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="w-full">
+                  <div className="h-2 w-full overflow-hidden rounded-full border-2 border-play-ink bg-white">
+                    <div className="h-full bg-play-blue transition-[width] duration-200 ease-linear" style={{ width: `${nextTurnFraction * 100}%` }} />
+                  </div>
+                  <p className="mt-1.5 font-play-display text-xs font-bold text-play-ink/55">Next round starts in {nextTurnSecondsLeft}s — scores reset for everyone</p>
+                </div>
+              </div>
+            ) : everyoneGuessedCelebration ? (
+              // Just an ordinary turn ending early — no leaderboard, same
+              // brief TURN_TRANSITION_DELAY_MS pause as a plain timeout.
+              <div className="flex flex-col items-center gap-1.5 rounded-2xl border-[3px] border-play-ink bg-play-orange px-8 py-5 text-center text-white shadow-[4px_4px_0_var(--color-play-ink)]">
+                <PartyPopper className="size-8" />
+                <p className="font-play-display text-xl font-bold">Everyone guessed it!</p>
+                <p className="font-play-display text-sm font-bold text-white/80">{transitionMessage}</p>
+              </div>
             ) : (
               <p className="rounded-2xl border-[3px] border-play-ink bg-white px-6 py-3 text-center font-play-display text-lg font-bold text-play-ink shadow-[4px_4px_0_var(--color-play-ink)]">
                 {transitionMessage}
@@ -795,6 +931,8 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
             )}
           </div>
         )}
+
+        {soleSurvivorOverlay}
 
         {canDraw && (
           <>
@@ -871,7 +1009,7 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
           separate row elsewhere on the page. */}
       {state.currentTurn && (
         <div className="shrink-0 px-1">
-          <TurnProgressBar turn={state.currentTurn} />
+          <TurnProgressBar turn={state.currentTurn} revealActive={revealActive} />
         </div>
       )}
     </div>

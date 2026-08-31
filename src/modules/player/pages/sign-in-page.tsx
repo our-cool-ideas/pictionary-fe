@@ -13,7 +13,7 @@ export function SignInPage() {
   const hasName = playerName.trim().length > 0;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-play-cream p-5 font-play-body">
+    <div className="flex min-h-screen items-center justify-center bg-play-sand p-5 font-play-body">
       <div className="flex w-full max-w-[420px] flex-col gap-4.5 rounded-[28px] border-[3px] border-play-ink bg-white p-7 shadow-[8px_8px_0_var(--color-play-ink)]">
         <div className="flex flex-col items-center gap-1.5 text-center">
           <div className="flex items-center gap-2">

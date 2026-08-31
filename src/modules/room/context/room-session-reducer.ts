@@ -1,7 +1,10 @@
 import { initialRoomSessionState, type RoomSessionAction, type RoomSessionState } from "./room-session.type";
 
-function systemMessage(text: string, isCorrectGuess = false): RoomSessionState["chatMessages"][number] {
-  return { id: `system-${Date.now()}-${Math.random()}`, playerId: "system", name: "System", message: text, sentAt: Date.now(), isSystem: true, isCorrectGuess };
+function systemMessage(
+  text: string,
+  flags?: { isCorrectGuess?: boolean; isCloseGuess?: boolean },
+): RoomSessionState["chatMessages"][number] {
+  return { id: `system-${Date.now()}-${Math.random()}`, playerId: "system", name: "System", message: text, sentAt: Date.now(), isSystem: true, ...flags };
 }
 
 export function roomSessionReducer(state: RoomSessionState, action: RoomSessionAction): RoomSessionState {
@@ -31,8 +34,30 @@ export function roomSessionReducer(state: RoomSessionState, action: RoomSessionA
       return {
         ...state,
         correctGuesserIds: [...state.correctGuesserIds, action.payload.playerId],
-        chatMessages: [...state.chatMessages, systemMessage(`${action.payload.name} has hit the answer`, true)],
+        // Points land the instant the guess is scored, not just at the
+        // end of the turn — the payload already carries both updated
+        // totals, so merge them straight into the live scoreboard.
+        currentTurn: state.currentTurn && {
+          ...state.currentTurn,
+          scores: {
+            ...state.currentTurn.scores,
+            [action.payload.playerId]: action.payload.guesserScore,
+            [action.payload.drawerId]: action.payload.drawerScore,
+          },
+        },
+        // No emoji in the text — ChatPanel renders a real Target icon
+        // next to isCorrectGuess lines instead (matches the app's
+        // hand-drawn/lucide icon language rather than emoji glyphs).
+        chatMessages: [...state.chatMessages, systemMessage(`${action.payload.name} has hit the answer`, { isCorrectGuess: true })],
       };
+
+    // Private to this client only — the server never broadcasts a
+    // near-miss guess (see game.handler.ts's "close" outcome), it just
+    // tells the guesser's own socket, so this never shows up in anyone
+    // else's chat. Echoes back the guesser's own typed word, not the
+    // actual answer.
+    case "CLOSE_GUESS":
+      return { ...state, chatMessages: [...state.chatMessages, systemMessage(`${action.guess} is quite close`, { isCloseGuess: true })] };
 
     case "TURN_ENDED":
       return {
@@ -41,18 +66,6 @@ export function roomSessionReducer(state: RoomSessionState, action: RoomSessionA
         yourWord: null,
         lastTurnResult: action.payload,
         chatMessages: [...state.chatMessages, systemMessage(`Turn over — the word was "${action.payload.word}".`)],
-      };
-
-    case "GAME_OVER":
-      return {
-        ...state,
-        currentTurn: null,
-        yourWord: null,
-        gameOver: action.payload,
-        chatMessages: [
-          ...state.chatMessages,
-          systemMessage(action.payload.winnerId ? `${action.payload.winnerName} wins with ${action.payload.scores[action.payload.winnerId]} points!` : "Game ended — not enough players."),
-        ],
       };
 
     case "STROKE_BROADCAST":

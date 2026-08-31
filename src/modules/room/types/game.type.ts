@@ -22,12 +22,20 @@ export interface TurnEndedPayload {
   drawerId: string;
   correctGuesserIds: string[];
   scores: Record<string, number>;
-}
-
-export interface GameOverPayload {
-  winnerId: string | null;
-  winnerName: string;
-  scores: Record<string, number>;
+  /**
+   * "everyone_guessed" ends the turn early once every connected non-drawer
+   * has scored — a brief celebration, still an ordinary turn change (no
+   * leaderboard). "round_won" means someone just reached the winning
+   * score — CanvasBoard shows the top-3 leaderboard for this one, for the
+   * much longer ROUND_TRANSITION_DELAY_MS, before scores reset and a
+   * fresh round starts. "timeout" is just the clock running out.
+   */
+  reason: "everyone_guessed" | "timeout" | "round_won";
+  /** When the next turn (or, for "round_won", the next round) is scheduled to start — drives CanvasBoard's post-turn countdown. */
+  nextTurnAt: number;
+  /** Only present when reason is "round_won". */
+  winnerId?: string;
+  winnerName?: string;
 }
 
 export interface StrokePoint {

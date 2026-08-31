@@ -42,10 +42,10 @@ export function PlayerDetailModal({ player, onClose, onKick }: PlayerDetailModal
         </button>
 
         <span
-          className="flex size-16 items-center justify-center rounded-full border-[3px] border-play-ink text-white"
+          className="flex size-16 items-center justify-center rounded-full border-[3px] border-play-ink"
           style={{ backgroundColor: avatar.color }}
         >
-          <AvatarIcon icon={avatar.icon} size={30} />
+          <AvatarIcon icon={avatar.icon} color={avatar.color} size={38} />
         </span>
         <p className="font-play-display text-lg font-bold text-play-ink">{player.name}</p>
 

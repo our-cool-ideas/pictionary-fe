@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Crown, Pencil, WifiOff } from "lucide-react";
+import { motion } from "motion/react";
+import { KeyRound, Pencil, WifiOff } from "lucide-react";
 import { getAvatarOption } from "@/modules/player/constants/avatar.constant";
 import { AvatarIcon } from "@/modules/player/components/avatar-icon";
 import { PlayerDetailModal } from "@/modules/room/components/player-detail-modal";
@@ -18,7 +19,7 @@ interface ScoreboardProps {
   onKick?: (playerId: string) => void;
 }
 
-/** The one "who's in this room" list for the whole room lifecycle — pre-game (host crown, reconnecting) and mid-game (drawing/correct-guess, score) alike. Clicking a card opens PlayerDetailModal — that's the kick action's new home, not a button sitting on the row itself. */
+/** The one "who's in this room" list for the whole room lifecycle — pre-game (host badge, reconnecting) and mid-game (drawing/correct-guess, score) alike. Clicking a card opens PlayerDetailModal — that's the kick action's new home, not a button sitting on the row itself. */
 export function Scoreboard({
   players,
   scores,
@@ -39,12 +40,16 @@ export function Scoreboard({
           const isSelf = player.playerId === currentPlayerId;
           const avatar = getAvatarOption(player.avatarId);
           const isDrawingNow = player.playerId === currentDrawerId;
-          // The green border IS the "you guessed it" indicator now — a
-          // separate checkmark badge on top of that would just be saying
-          // the same thing twice.
+          // The whole card turns orange for "you guessed it this round" —
+          // a border color alone was too easy to miss at a glance, this
+          // reads immediately across the whole row.
           const hasGuessed = correctGuesserIds.includes(player.playerId);
           return (
-            <li key={player.playerId}>
+            // `layout` is what animates the row sliding to its new spot
+            // when someone's score overtakes another's re-sorts `sorted`
+            // — a plain re-render would otherwise just snap rows into
+            // their new DOM position with no visible motion at all.
+            <motion.li key={player.playerId} layout transition={{ type: "spring", stiffness: 380, damping: 32 }}>
               <button
                 type="button"
                 onClick={() => setSelectedPlayer(player)}
@@ -60,45 +65,67 @@ export function Scoreboard({
                   // through each other at the bottom-right as a sharp black
                   // wedge instead of a clean curve. 2px/2px on a card this
                   // small doesn't hit that mismatch.
-                  "flex w-full appearance-none items-center gap-2 rounded-xl border-2 bg-white px-2.5 py-2 text-left shadow-[.5px_2px_0_var(--color-play-ink)] transition-colors",
-                  hasGuessed ? "border-play-green" : "border-play-ink",
+                  "flex w-full appearance-none items-center gap-2 rounded-xl border-2 border-play-ink px-2.5 py-2 text-left shadow-[.5px_2px_0_var(--color-play-ink)] transition-colors",
+                  hasGuessed ? "bg-play-orange" : "bg-white",
                   !player.connected && "opacity-50",
                 )}
               >
-                <span
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-play-ink text-white"
-                  style={{ backgroundColor: avatar.color }}
-                >
-                  <AvatarIcon icon={avatar.icon} size={16} />
+                {/* Bigger now specifically so the host/drawer badges have
+                    room to sit ON the avatar itself (corner overlays)
+                    instead of floating as separate row icons — a crown
+                    read as "winner" to players, not "room host", so host
+                    gets its own distinct badge (a key, not a crown) and
+                    drawer keeps its pencil, just restyled to match. */}
+                <span className="relative flex size-12 shrink-0 items-center justify-center rounded-full border-2 border-play-ink" style={{ backgroundColor: avatar.color }}>
+                  <AvatarIcon icon={avatar.icon} color={avatar.color} size={28} />
+                  {player.isHost && (
+                    <span
+                      className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full border-2 border-white bg-play-orange"
+                      aria-label="Host"
+                    >
+                      <KeyRound className="size-2.5 text-white" strokeWidth={3} />
+                    </span>
+                  )}
+                  {isDrawingNow && (
+                    <span
+                      className="absolute -right-1.5 -bottom-1.5 flex size-5 items-center justify-center rounded-full border-2 border-white bg-play-blue"
+                      aria-label="Currently drawing"
+                    >
+                      <Pencil className="size-2.5 text-white" strokeWidth={3} />
+                    </span>
+                  )}
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-play-display text-sm font-bold text-play-ink">
+                  <span
+                    className={cn(
+                      "truncate font-play-display text-sm font-bold",
+                      hasGuessed ? "text-white" : "text-play-ink",
+                    )}
+                  >
                     {player.name}
-                    {isSelf && <span className="text-play-ink/45"> (you)</span>}
+                    {isSelf && <span className={hasGuessed ? "text-white/70" : "text-play-ink/45"}> (Me)</span>}
                   </span>
                   {!player.connected && (
-                    <span className="flex items-center gap-1 text-[11px] font-bold text-play-ink/50">
+                    <span
+                      className={cn(
+                        "flex items-center gap-1 text-[11px] font-bold",
+                        hasGuessed ? "text-white/80" : "text-play-ink/50",
+                      )}
+                    >
                       <WifiOff className="size-3" /> Reconnecting…
                     </span>
                   )}
                 </div>
-                {player.isHost && (
-                  <Crown
-                    className="size-4 shrink-0 text-play-orange"
-                    aria-label="Host"
-                  />
-                )}
-                {isDrawingNow && (
-                  <Pencil
-                    className="size-4 shrink-0 text-play-blue"
-                    aria-label="Currently drawing"
-                  />
-                )}
-                <span className="shrink-0 font-play-display text-sm font-bold tabular-nums text-play-ink">
+                <span
+                  className={cn(
+                    "shrink-0 font-play-display text-sm font-bold tabular-nums",
+                    hasGuessed ? "text-white" : "text-play-ink",
+                  )}
+                >
                   {scores[player.playerId] ?? 0}
                 </span>
               </button>
-            </li>
+            </motion.li>
           );
         })}
       </ul>

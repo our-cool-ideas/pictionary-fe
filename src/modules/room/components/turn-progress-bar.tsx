@@ -6,6 +6,8 @@ import type { TurnStartedPayload } from "@/modules/room/types/game.type";
 
 interface TurnProgressBarProps {
   turn: TurnStartedPayload;
+  /** True during the drawer's 5s word-reveal window — the bar stays pinned full instead of already draining before drawing time actually starts. */
+  revealActive?: boolean;
 }
 
 type UrgencyStage = "blue" | "yellow" | "red";
@@ -26,8 +28,8 @@ const STAGE_FILL: Record<UrgencyStage, string> = {
 };
 
 /** A draining "reverse" progress bar over the canvas — full the instant a turn starts, empty at the deadline — replacing the old numeric "Xs" badge that used to sit in the room-metadata card. */
-export function TurnProgressBar({ turn }: TurnProgressBarProps) {
-  const fraction = useTurnProgress(turn.turnEndsAt);
+export function TurnProgressBar({ turn, revealActive = false }: TurnProgressBarProps) {
+  const fraction = useTurnProgress(turn.turnEndsAt, revealActive);
   const stage = stageFor(fraction);
 
   return (

@@ -9,20 +9,21 @@ import { usePlayerIdentity } from "@/hooks/use-player-identity";
 
 export function RoomsPage() {
   const router = useRouter();
-  const { playerName, avatarId } = usePlayerIdentity();
+  const { playerName, avatarId, isHydrated } = usePlayerIdentity();
   const hasName = playerName.trim().length > 0;
 
-  // Guest identity is never persisted (see PlayerIdentityProvider) — a
-  // direct/refreshed visit to /rooms with no name set has nowhere to go
-  // but back to the sign-in page where a name gets chosen.
+  // Name/avatar are persisted to localStorage now (see PlayerIdentityProvider),
+  // but that read only resolves after mount — wait for isHydrated before
+  // deciding there's no name, otherwise a returning guest's refresh would
+  // get bounced to "/" in the split second before their stored name loads.
   useEffect(() => {
-    if (!hasName) router.replace("/");
-  }, [hasName, router]);
+    if (isHydrated && !hasName) router.replace("/");
+  }, [isHydrated, hasName, router]);
 
-  if (!hasName) return null;
+  if (!isHydrated || !hasName) return null;
 
   return (
-    <div className="min-h-screen bg-play-cream p-6 font-play-body sm:p-10">
+    <div className="min-h-screen bg-play-sand p-6 font-play-body sm:p-10">
       <div className="mx-auto flex max-w-4xl flex-col gap-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

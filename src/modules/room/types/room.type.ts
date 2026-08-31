@@ -41,6 +41,8 @@ export interface ChatMessage {
   sentAt: number;
   /** A server-generated announcement (correct guess, turn ended) rendered distinctly from a player's own words. */
   isSystem?: boolean;
-  /** Narrows isSystem down to specifically "someone guessed right" — ChatPanel highlights these in green instead of the generic muted system style. */
+  /** Narrows isSystem down to specifically "someone guessed right" — ChatPanel renders these bold italic orange, with an emoji, instead of the generic muted system style. */
   isCorrectGuess?: boolean;
+  /** Narrows isSystem down to "this client's own near-miss guess" — private to the guesser (never broadcast), rendered bold italic blue. */
+  isCloseGuess?: boolean;
 }

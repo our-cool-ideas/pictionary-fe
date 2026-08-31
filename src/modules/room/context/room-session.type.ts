@@ -1,5 +1,5 @@
 import type { ChatMessage, RoomState } from "@/modules/room/types/room.type";
-import type { CorrectGuessPayload, DrawAction, GameOverPayload, TurnEndedPayload, TurnStartedPayload } from "@/modules/room/types/game.type";
+import type { CorrectGuessPayload, DrawAction, TurnEndedPayload, TurnStartedPayload } from "@/modules/room/types/game.type";
 
 export interface RoomSessionState {
   room: RoomState | null;
@@ -8,7 +8,6 @@ export interface RoomSessionState {
   yourWord: string | null;
   correctGuesserIds: string[];
   lastTurnResult: TurnEndedPayload | null;
-  gameOver: GameOverPayload | null;
   chatMessages: ChatMessage[];
   strokes: DrawAction[];
   youWereKicked: boolean;
@@ -21,7 +20,6 @@ export const initialRoomSessionState: RoomSessionState = {
   yourWord: null,
   correctGuesserIds: [],
   lastTurnResult: null,
-  gameOver: null,
   chatMessages: [],
   strokes: [],
   youWereKicked: false,
@@ -34,8 +32,8 @@ export type RoomSessionAction =
   | { type: "TURN_STARTED"; payload: TurnStartedPayload }
   | { type: "YOUR_WORD"; word: string }
   | { type: "CORRECT_GUESS"; payload: CorrectGuessPayload }
+  | { type: "CLOSE_GUESS"; guess: string }
   | { type: "TURN_ENDED"; payload: TurnEndedPayload }
-  | { type: "GAME_OVER"; payload: GameOverPayload }
   | { type: "STROKE_BROADCAST"; stroke: DrawAction }
   | { type: "STROKE_HISTORY"; strokes: DrawAction[] }
   | { type: "CANVAS_CLEARED" }

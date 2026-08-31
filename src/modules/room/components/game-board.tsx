@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 import { useSocket } from "@/hooks/use-socket";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { CanvasBoard } from "@/modules/room/components/canvas-board";
 import { Scoreboard } from "@/modules/room/components/scoreboard";
 import { ChatPanel } from "@/modules/room/components/chat-panel";
-import { CorrectGuessCelebration } from "@/modules/room/components/correct-guess-celebration";
 import {
   DEFAULT_STROKE_COLOR,
   DEFAULT_STROKE_WIDTH,
@@ -29,10 +30,11 @@ import type { CanvasTool } from "@/modules/room/types/canvas-tool.type";
  * underneath.
  */
 export function GameBoard() {
+  const router = useRouter();
   const { playerId } = useSocket();
   const {
     state,
-    actions: { kickPlayer, clearCanvas, undo, redo },
+    actions: { kickPlayer, clearCanvas, undo, redo, leaveRoom },
   } = useRoomSession();
 
   // Toolbar state lives here, not in CanvasBoard — but the toolbar's own
@@ -56,17 +58,37 @@ export function GameBoard() {
   const scores =
     state.currentTurn?.scores ?? state.lastTurnResult?.scores ?? {};
 
+  async function handleLeave() {
+    await leaveRoom();
+    router.push("/rooms");
+  }
+
   return (
-    <div className="flex h-screen flex-col justify-center overflow-hidden bg-play-cream px-6 py-5 lg:px-24 lg:py-8">
+    // `bg-play-sand`, not the app-wide `bg-play-cream` — this page's own
+    // bolder background (see globals.css) so the white cards on top of
+    // it actually read as white cards on a colored page, not two
+    // near-identical shades of off-white.
+    <div className="flex h-screen flex-col justify-center overflow-hidden bg-play-sand px-6 py-5 lg:px-24 lg:py-8">
       {/* No forced height here (no `flex-1`/`h-full`) — this grid is
           exactly as tall as its content needs (see the file-level comment
           above for why), capped at `max-h-full` so it can never exceed
           the space `justify-center` above has to work with. */}
       <div className="grid max-h-full grid-cols-12 gap-4">
-        <div className="col-span-3 flex h-full min-h-0 flex-col rounded-2xl border-[3px] border-play-ink bg-white p-3 shadow-[5px_5px_0_var(--color-play-ink)]">
-          <p className="mb-2 shrink-0 px-0.5 font-play-display text-xs font-bold tracking-wide text-play-ink/50 uppercase">
-            Players ({state.room.players.length})
-          </p>
+        <div className="col-span-3 flex h-full min-h-0 flex-col rounded-2xl border-[3px] border-play-ink bg-play-blue p-3 shadow-[5px_5px_0_var(--color-play-ink)]">
+          <div className="mb-2 flex shrink-0 items-center justify-between gap-2 px-0.5">
+            <p className="font-play-display text-xs font-bold tracking-wide text-white uppercase">
+              Players ({state.room.players.length})
+            </p>
+            <button
+              type="button"
+              onClick={handleLeave}
+              aria-label="Leave room"
+              className="flex shrink-0 items-center gap-1 rounded-lg border-2 border-white/40 bg-white/10 px-2 py-1 font-play-display text-[10px] font-bold tracking-wide text-white uppercase transition-colors hover:bg-white/20"
+            >
+              <LogOut className="size-3" />
+              Leave
+            </button>
+          </div>
           {/* This card is an actual flex column (`flex h-full flex-col`
               above), which is what makes `min-h-0 flex-1` here do
               anything — a long player list scrolls inside this card
@@ -106,8 +128,6 @@ export function GameBoard() {
 
         <div className="col-span-2 border-[3px]"></div>
       </div>
-
-      <CorrectGuessCelebration />
     </div>
   );
 }
