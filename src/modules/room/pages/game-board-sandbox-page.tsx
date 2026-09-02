@@ -63,7 +63,15 @@ function mockNextTurnAt(): number {
 function makeTurn(players: RoomPlayer[], drawerIsYou: boolean, turnNumber: number): TurnStartedPayload | null {
   const drawer = drawerIsYou ? players[0] : (players[1] ?? players[0]);
   if (!drawer) return null;
-  return { turnNumber, drawerId: drawer.playerId, drawerName: drawer.name, wordLength: MOCK_WORD.length, turnEndsAt: Date.now() + 90_000, scores: buildScores(players) };
+  return {
+    turnNumber,
+    drawerId: drawer.playerId,
+    drawerName: drawer.name,
+    wordLength: MOCK_WORD.length,
+    turnEndsAt: Date.now() + 90_000,
+    scores: buildScores(players),
+    correctGuesserIds: [],
+  };
 }
 
 function systemMessage(text: string, isCorrectGuess = false): ChatMessage {

@@ -7,6 +7,12 @@ export interface TurnStartedPayload {
   wordLength: number;
   turnEndsAt: number;
   scores: Record<string, number>;
+  /**
+   * Always [] for a genuinely fresh turn — only meaningfully non-empty
+   * when this is the mid-turn catch-up a late joiner receives, who needs
+   * to know who's already guessed right, not just that a turn is running.
+   */
+  correctGuesserIds: string[];
 }
 
 export interface CorrectGuessPayload {

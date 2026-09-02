@@ -16,12 +16,18 @@ export function roomSessionReducer(state: RoomSessionState, action: RoomSessionA
       return { ...state, chatMessages: [...state.chatMessages, action.message] };
 
     case "TURN_STARTED":
-      // A new turn always starts with a clean slate — no carried-over guesses/word/canvas.
+      // A new turn always starts with a clean slate — no carried-over
+      // guesses/word/canvas. `correctGuesserIds` comes straight off the
+      // payload rather than being hardcoded to [] here, though: for a
+      // genuinely fresh turn the server already sends it empty, but for
+      // the mid-turn catch-up a late joiner receives (see
+      // getCurrentTurnStarted in pictionary-be), it's the real list of
+      // who's already guessed right this turn.
       return {
         ...state,
         currentTurn: action.payload,
         yourWord: null,
-        correctGuesserIds: [],
+        correctGuesserIds: action.payload.correctGuesserIds,
         lastTurnResult: null,
         strokes: [],
         chatMessages: [...state.chatMessages, systemMessage(`${action.payload.drawerName} is drawing now — go!`)],
