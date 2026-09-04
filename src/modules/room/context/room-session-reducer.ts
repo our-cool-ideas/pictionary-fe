@@ -15,6 +15,37 @@ export function roomSessionReducer(state: RoomSessionState, action: RoomSessionA
     case "CHAT_MESSAGE":
       return { ...state, chatMessages: [...state.chatMessages, action.message] };
 
+    // A drawer's been picked and is choosing between two words — nobody
+    // can guess yet (currentTurn is still null), but the canvas needs to
+    // show *something* other than a frozen pre-game card, hence this
+    // being its own state rather than just waiting for TURN_STARTED.
+    case "WORD_CHOICE_PENDING":
+      return {
+        ...state,
+        wordChoicePending: action.payload,
+        myWordChoices: null,
+        turnSkipped: null,
+        lastTurnResult: null,
+        chatMessages: [...state.chatMessages, systemMessage(`${action.payload.drawerName} is picking a word…`)],
+      };
+
+    // Only ever received by the drawer themselves — see WordChoicesPayload's doc comment.
+    case "WORD_CHOICES":
+      return { ...state, myWordChoices: action.payload };
+
+    // The drawer didn't pick in time — no word, no turn, straight to
+    // whoever's next. wordChoicePending/myWordChoices clear out here
+    // rather than waiting for the next WORD_CHOICE_PENDING, so the
+    // "picking a word" UI doesn't linger through the skip message.
+    case "TURN_SKIPPED":
+      return {
+        ...state,
+        turnSkipped: action.payload,
+        wordChoicePending: null,
+        myWordChoices: null,
+        chatMessages: [...state.chatMessages, systemMessage(`${action.payload.drawerName}'s turn was skipped — no word chosen in time.`)],
+      };
+
     case "TURN_STARTED":
       // A new turn always starts with a clean slate — no carried-over
       // guesses/word/canvas. `correctGuesserIds` comes straight off the
@@ -29,6 +60,9 @@ export function roomSessionReducer(state: RoomSessionState, action: RoomSessionA
         yourWord: null,
         correctGuesserIds: action.payload.correctGuesserIds,
         lastTurnResult: null,
+        wordChoicePending: null,
+        myWordChoices: null,
+        turnSkipped: null,
         strokes: [],
         chatMessages: [...state.chatMessages, systemMessage(`${action.payload.drawerName} is drawing now — go!`)],
       };

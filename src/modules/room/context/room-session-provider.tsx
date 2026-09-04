@@ -15,6 +15,9 @@ import type {
   StrokePoint,
   TurnEndedPayload,
   TurnStartedPayload,
+  WordChoicePendingPayload,
+  WordChoicesPayload,
+  TurnSkippedPayload,
 } from "@/modules/room/types/game.type";
 
 interface ActionResult {
@@ -41,6 +44,7 @@ export interface RoomSessionActions {
   kickPlayer: (playerId: string) => Promise<ActionResult>;
   sendMessage: (message: string) => Promise<ActionResult>;
   startGame: () => Promise<ActionResult>;
+  chooseWord: (wordId: string) => Promise<ActionResult>;
   submitStroke: (stroke: { points: StrokePoint[]; color: string; width: number }) => void;
   submitFill: (fill: { x: number; y: number; color: string }) => void;
   clearCanvas: () => void;
@@ -76,6 +80,9 @@ export function RoomSessionProvider({ children }: { children: React.ReactNode })
     };
 
     const onRoomClosed = () => dispatch({ type: "ROOM_CLOSED" });
+    const onWordChoicePending = (payload: WordChoicePendingPayload) => dispatch({ type: "WORD_CHOICE_PENDING", payload });
+    const onWordChoices = (payload: WordChoicesPayload) => dispatch({ type: "WORD_CHOICES", payload });
+    const onTurnSkipped = (payload: TurnSkippedPayload) => dispatch({ type: "TURN_SKIPPED", payload });
     const onTurnStarted = (payload: TurnStartedPayload) => dispatch({ type: "TURN_STARTED", payload });
     const onYourWord = (payload: { word: string }) => dispatch({ type: "YOUR_WORD", word: payload.word });
     const onCorrectGuess = (payload: CorrectGuessPayload) => {
@@ -98,6 +105,9 @@ export function RoomSessionProvider({ children }: { children: React.ReactNode })
     socket.on(SOCKET_EVENT.ROOM_CHAT_MESSAGE, onChatMessage);
     socket.on(SOCKET_EVENT.ROOM_CLOSED, onRoomClosed);
 
+    socket.on(SOCKET_EVENT.GAME_WORD_CHOICE_PENDING, onWordChoicePending);
+    socket.on(SOCKET_EVENT.GAME_WORD_CHOICES, onWordChoices);
+    socket.on(SOCKET_EVENT.GAME_TURN_SKIPPED, onTurnSkipped);
     socket.on(SOCKET_EVENT.GAME_TURN_STARTED, onTurnStarted);
     socket.on(SOCKET_EVENT.GAME_YOUR_WORD, onYourWord);
     socket.on(SOCKET_EVENT.GAME_CORRECT_GUESS, onCorrectGuess);
@@ -116,6 +126,9 @@ export function RoomSessionProvider({ children }: { children: React.ReactNode })
       socket.off(SOCKET_EVENT.ROOM_CHAT_MESSAGE, onChatMessage);
       socket.off(SOCKET_EVENT.ROOM_CLOSED, onRoomClosed);
 
+      socket.off(SOCKET_EVENT.GAME_WORD_CHOICE_PENDING, onWordChoicePending);
+      socket.off(SOCKET_EVENT.GAME_WORD_CHOICES, onWordChoices);
+      socket.off(SOCKET_EVENT.GAME_TURN_SKIPPED, onTurnSkipped);
       socket.off(SOCKET_EVENT.GAME_TURN_STARTED, onTurnStarted);
       socket.off(SOCKET_EVENT.GAME_YOUR_WORD, onYourWord);
       socket.off(SOCKET_EVENT.GAME_CORRECT_GUESS, onCorrectGuess);
@@ -158,6 +171,11 @@ export function RoomSessionProvider({ children }: { children: React.ReactNode })
 
     async startGame() {
       const res = await emitWithAck(socket, SOCKET_EVENT.GAME_START, {});
+      return { ok: res.status < 400, message: res.message };
+    },
+
+    async chooseWord(wordId) {
+      const res = await emitWithAck(socket, SOCKET_EVENT.GAME_CHOOSE_WORD, { wordId });
       return { ok: res.status < 400, message: res.message };
     },
 

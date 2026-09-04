@@ -22,14 +22,18 @@ export enum SOCKET_EVENT {
   GAME_CLEAR_CANVAS = "game:clear_canvas",
   GAME_UNDO = "game:undo",
   GAME_REDO = "game:redo",
+  GAME_CHOOSE_WORD = "game:choose_word",
 
   GAME_TURN_STARTED = "game:turn_started",
   GAME_STROKE_BROADCAST = "game:stroke_broadcast",
   GAME_CANVAS_CLEARED = "game:canvas_cleared",
   GAME_CORRECT_GUESS = "game:correct_guess",
   GAME_TURN_ENDED = "game:turn_ended",
+  GAME_WORD_CHOICE_PENDING = "game:word_choice_pending",
+  GAME_TURN_SKIPPED = "game:turn_skipped",
 
   GAME_YOUR_WORD = "game:your_word",
   GAME_STROKE_HISTORY = "game:stroke_history",
   GAME_CLOSE_GUESS = "game:close_guess",
+  GAME_WORD_CHOICES = "game:word_choices",
 }

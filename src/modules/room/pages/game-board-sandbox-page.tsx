@@ -187,6 +187,11 @@ export function GameBoardSandboxPage() {
     yourWord,
     correctGuesserIds,
     lastTurnResult,
+    // The word-choice phase isn't modeled in this sandbox yet — every
+    // mock turn here goes straight to a chosen word, same as before.
+    wordChoicePending: null,
+    myWordChoices: null,
+    turnSkipped: null,
     chatMessages,
     strokes,
     youWereKicked,
@@ -215,6 +220,9 @@ export function GameBoardSandboxPage() {
     async startGame() {
       goToView("playing");
       return { ok: true, message: "" };
+    },
+    async chooseWord() {
+      return { ok: false, message: "Not available in the sandbox" };
     },
     submitStroke(stroke) {
       if (!currentTurn) return;

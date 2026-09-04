@@ -9,7 +9,7 @@ import { TurnProgressBar } from "@/modules/room/components/turn-progress-bar";
 import { PreGameCanvasCard } from "@/modules/room/components/pre-game-canvas-card";
 import { CanvasToolbar, TOOL_BUTTONS } from "@/modules/room/components/canvas-toolbar";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, STROKE_FLUSH_INTERVAL_MS } from "@/modules/room/constants/canvas.constant";
-import { TURN_TRANSITION_DELAY_MS, ROUND_TRANSITION_DELAY_MS } from "@/modules/room/constants/turn.constant";
+import { TURN_TRANSITION_DELAY_MS, ROUND_TRANSITION_DELAY_MS, WORD_CHOICE_DURATION_MS } from "@/modules/room/constants/turn.constant";
 import { useCountdown } from "@/modules/room/hooks/use-countdown";
 import { useCountdownFraction } from "@/modules/room/hooks/use-countdown-fraction";
 import { getAvatarOption } from "@/modules/player/constants/avatar.constant";
@@ -389,12 +389,15 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
   }, [state.currentTurn]);
 
   // Whether a game has actually started at some point (a turn is running,
-  // or one just ended) — moved up here (it's normally computed right
-  // before the pre-game early return, much further down) specifically so
-  // the sole-survivor countdown below can gate on it: sitting alone in a
-  // room that hasn't started yet is just "waiting for friends to join",
-  // not "everyone left" — only the latter should count down to closing.
-  const gameStarted = state.currentTurn !== null || state.lastTurnResult !== null;
+  // one just ended, a drawer's mid-word-choice, or a turn was just
+  // skipped for not choosing in time) — moved up here (it's normally
+  // computed right before the pre-game early return, much further down)
+  // specifically so the sole-survivor countdown below can gate on it:
+  // sitting alone in a room that hasn't started yet is just "waiting for
+  // friends to join", not "everyone left" — only the latter should count
+  // down to closing.
+  const gameStarted =
+    state.currentTurn !== null || state.lastTurnResult !== null || state.wordChoicePending !== null || state.turnSkipped !== null;
 
   // Only this client's own presence counts as "am I the last one here" —
   // if everyone else's connected flag drops to false but this player is
@@ -485,6 +488,20 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
   const nextTransitionTotalMs = roundWonCelebration ? ROUND_TRANSITION_DELAY_MS : TURN_TRANSITION_DELAY_MS;
   const nextTurnFraction = useCountdownFraction(nextTurnAt, nextTransitionTotalMs);
   const nextTurnSecondsLeft = useCountdown(nextTurnAt);
+
+  // Whether THIS client is the one currently being asked to pick a word —
+  // deliberately not the `isDrawer` prop (GameBoard derives that from
+  // state.currentTurn, which is still null during this whole phase — see
+  // gameStarted above), it's freshly computed off wordChoicePending
+  // instead. Only ever true for one client at a time, same as isDrawer
+  // normally is once a turn's actually running.
+  const isChoosingWord = state.wordChoicePending?.drawerId === playerId;
+  // Its own countdown, deliberately separate from the main turn clock
+  // (nextTurnSecondsLeft/TurnProgressBar) — these 6 seconds never count
+  // against the drawer's actual drawing time, so they get their own timer
+  // reading straight off wordChoiceEndsAt.
+  const wordChoiceSecondsLeft = useCountdown(state.wordChoicePending?.wordChoiceEndsAt ?? null);
+  const wordChoiceFraction = useCountdownFraction(state.wordChoicePending?.wordChoiceEndsAt ?? null, WORD_CHOICE_DURATION_MS);
 
   // Whether the tool-picker popover is open — closed by default, and
   // closed again automatically the moment a tool/size/color is actually
@@ -929,6 +946,60 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
                 {transitionMessage}
               </p>
             )}
+          </div>
+        )}
+
+        {/* The word-choice phase — a drawer's been picked but hasn't
+            chosen a word yet (see gameStarted's expanded gate above).
+            Mutually exclusive with transitionMessage by construction: the
+            reducer clears currentTurn/lastTurnResult the instant
+            wordChoicePending is set, and vice versa the moment a word's
+            actually chosen. `isChoosingWord` splits this into two very
+            different views of the exact same countdown — one client gets
+            two clickable words, everyone else just gets told to wait. */}
+        {state.wordChoicePending && (
+          <div
+            className={`absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-play-ink/50 ${isChoosingWord ? "" : "pointer-events-none"}`}
+          >
+            {isChoosingWord && state.myWordChoices ? (
+              <div className="flex w-72 flex-col items-center gap-3 rounded-2xl border-[3px] border-play-ink bg-white px-6 py-5 text-center shadow-[4px_4px_0_var(--color-play-ink)]">
+                <p className="font-play-display text-xs font-bold tracking-wide text-play-ink/50 uppercase">Pick a word to draw</p>
+                <div className="flex w-full flex-col gap-2">
+                  {state.myWordChoices.choices.map((choice) => (
+                    <button
+                      key={choice.id}
+                      type="button"
+                      onClick={() => void actions.chooseWord(choice.id)}
+                      className="w-full cursor-pointer rounded-xl border-2 border-play-ink bg-play-sand px-4 py-2.5 font-play-display text-base font-bold text-play-ink transition-colors hover:bg-play-blue hover:text-white"
+                    >
+                      {choice.text}
+                    </button>
+                  ))}
+                </div>
+                <div className="w-full">
+                  <div className="h-2 w-full overflow-hidden rounded-full border-2 border-play-ink bg-white">
+                    <div className="h-full bg-play-blue transition-[width] duration-200 ease-linear" style={{ width: `${wordChoiceFraction * 100}%` }} />
+                  </div>
+                  <p className="mt-1.5 font-play-display text-xs font-bold text-play-ink/55">{wordChoiceSecondsLeft}s to choose, or the turn&apos;s skipped</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-1.5 rounded-2xl border-[3px] border-play-ink bg-white px-8 py-5 text-center shadow-[4px_4px_0_var(--color-play-ink)]">
+                <p className="font-play-display text-lg font-bold text-play-ink">{state.wordChoicePending.drawerName} is picking a word…</p>
+                <p className="font-play-display text-sm font-bold text-play-ink/55">{wordChoiceSecondsLeft}s</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* A drawer didn't choose in time — cleared the instant the next
+            wordChoicePending arrives (see the TURN_SKIPPED reducer case),
+            so this never lingers past the next turn's own choice phase. */}
+        {state.turnSkipped && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-play-ink/50">
+            <p className="rounded-2xl border-[3px] border-play-ink bg-white px-6 py-3 text-center font-play-display text-lg font-bold text-play-ink shadow-[4px_4px_0_var(--color-play-ink)]">
+              {state.turnSkipped.drawerId === playerId ? "Your turn has gone!" : `${state.turnSkipped.drawerName}'s turn was skipped`}
+            </p>
           </div>
         )}
 

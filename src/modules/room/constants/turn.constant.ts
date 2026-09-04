@@ -14,3 +14,11 @@ export const TURN_DURATION_MS = 60_000;
 // the round-won leaderboard. Same cosmetic-drift caveat as TURN_DURATION_MS above.
 export const TURN_TRANSITION_DELAY_MS = 5_000;
 export const ROUND_TRANSITION_DELAY_MS = 20_000;
+
+// Mirrors pictionary-be's WORD_CHOICE_DURATION_MS — the server owns the
+// actual deadline (WordChoicePendingPayload.wordChoiceEndsAt), this is
+// only the denominator for the choice countdown CanvasBoard shows, kept
+// deliberately separate from the main turn progress bar (see
+// CanvasBoard's word-choice overlay) since this window never counts
+// against the drawer's actual drawing time.
+export const WORD_CHOICE_DURATION_MS = 6_000;

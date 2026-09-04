@@ -1,5 +1,27 @@
 // Mirrors pictionary-be's game event payload shapes (modules/game/game.type.ts).
 
+/** Broadcast to the whole room the instant a drawer is picked, before they've chosen a word — CanvasBoard shows "X is picking a word…" during this window. Never carries the actual word options. */
+export interface WordChoicePendingPayload {
+  turnNumber: number;
+  drawerId: string;
+  drawerName: string;
+  wordChoiceEndsAt: number;
+}
+
+/** Sent to the drawer only — the actual two options, never broadcast. */
+export interface WordChoicesPayload {
+  choices: { id: string; text: string }[];
+  wordChoiceEndsAt: number;
+}
+
+/** Broadcast when a drawer let the word-choice window run out without picking — their turn is skipped outright, no drawing happens. */
+export interface TurnSkippedPayload {
+  drawerId: string;
+  drawerName: string;
+  /** When the next word-choice phase is scheduled to start — same brief-pause idea as TurnEndedPayload.nextTurnAt. */
+  nextChoiceAt: number;
+}
+
 export interface TurnStartedPayload {
   turnNumber: number;
   drawerId: string;
