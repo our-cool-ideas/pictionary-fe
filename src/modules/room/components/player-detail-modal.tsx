@@ -4,6 +4,7 @@ import { LogOut, X } from "lucide-react";
 import { getAvatarOption } from "@/modules/player/constants/avatar.constant";
 import { AvatarIcon } from "@/modules/player/components/avatar-icon";
 import type { RoomPlayer } from "@/modules/room/types/room.type";
+import { PRESS_CLASS, cn, pressStyle } from "@/lib/utils";
 
 interface PlayerDetailModalProps {
   player: RoomPlayer;
@@ -42,10 +43,10 @@ export function PlayerDetailModal({ player, onClose, onKick }: PlayerDetailModal
         </button>
 
         <span
-          className="flex size-16 items-center justify-center rounded-full border-[3px] border-play-ink"
+          className="flex size-16 items-center justify-center overflow-hidden rounded-full border-[3px] border-play-ink"
           style={{ backgroundColor: avatar.color }}
         >
-          <AvatarIcon icon={avatar.icon} color={avatar.color} size={38} />
+          <AvatarIcon icon={avatar.icon} color={avatar.color} size={58} />
         </span>
         <p className="font-play-display text-lg font-bold text-play-ink">{player.name}</p>
 
@@ -53,7 +54,11 @@ export function PlayerDetailModal({ player, onClose, onKick }: PlayerDetailModal
           <button
             type="button"
             onClick={onKick}
-            className="mt-1 flex items-center gap-1.5 rounded-xl border-2 border-play-ink bg-red-500 px-5 py-2 font-play-display text-sm font-bold text-white shadow-[2px_2px_0_var(--color-play-ink)]"
+            style={pressStyle(2)}
+            className={cn(
+              "mt-1 flex items-center gap-1.5 rounded-xl border-2 border-play-ink bg-red-500 px-5 py-2 font-play-display text-sm font-bold text-white shadow-[2px_2px_0_var(--color-play-ink)]",
+              PRESS_CLASS,
+            )}
           >
             <LogOut className="size-4" />
             Kick {player.name}

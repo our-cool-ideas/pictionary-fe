@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { joinRoomFormSchema, type JoinRoomFormValues } from "@/modules/room/validation/join-room.validation";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { usePlayerIdentity } from "@/hooks/use-player-identity";
+import { PRESS_CLASS, cn, pressStyle } from "@/lib/utils";
 
 export function JoinRoomForm({ code }: { code: string }) {
   const { playerName, setPlayerName, avatarId } = usePlayerIdentity();
@@ -66,7 +67,11 @@ export function JoinRoomForm({ code }: { code: string }) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex items-center justify-center gap-2 rounded-2xl border-[3px] border-play-ink bg-play-orange p-3.5 font-play-display text-lg font-bold text-white shadow-[4px_4px_0_var(--color-play-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+            style={pressStyle(4)}
+            className={cn(
+              "flex items-center justify-center gap-2 rounded-2xl border-[3px] border-play-ink bg-play-orange p-3.5 font-play-display text-lg font-bold text-white shadow-[4px_4px_0_var(--color-play-ink)] disabled:cursor-not-allowed disabled:opacity-60",
+              PRESS_CLASS,
+            )}
           >
             {isSubmitting ? (
               <>

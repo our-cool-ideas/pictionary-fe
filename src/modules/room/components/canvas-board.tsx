@@ -16,6 +16,7 @@ import { getAvatarOption } from "@/modules/player/constants/avatar.constant";
 import { AvatarIcon } from "@/modules/player/components/avatar-icon";
 import type { CanvasTool } from "@/modules/room/types/canvas-tool.type";
 import type { DrawAction, StrokePoint } from "@/modules/room/types/game.type";
+import { PRESS_CLASS, cn, pressStyle } from "@/lib/utils";
 
 // The canvas element's own background (`bg-white`, below) — see
 // canvas-tool.type.ts's note on the eraser not being a real wire
@@ -917,8 +918,8 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
                     return (
                       <div key={player.playerId} className="flex items-center gap-2 rounded-xl border-2 border-play-ink bg-play-sand px-2.5 py-1.5">
                         <span className="w-4 shrink-0 font-play-display text-sm font-bold text-play-ink/50">{index + 1}</span>
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-play-ink" style={{ backgroundColor: avatar.color }}>
-                          <AvatarIcon icon={avatar.icon} color={avatar.color} size={16} />
+                        <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-play-ink" style={{ backgroundColor: avatar.color }}>
+                          <AvatarIcon icon={avatar.icon} color={avatar.color} size={25} />
                         </span>
                         <span className="flex-1 truncate text-left font-play-display text-sm font-bold text-play-ink">{player.name}</span>
                         <span className="shrink-0 font-play-display text-sm font-bold text-play-ink tabular-nums">{lastTurnResult.scores[player.playerId] ?? 0}</span>
@@ -970,7 +971,7 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
                       key={choice.id}
                       type="button"
                       onClick={() => void actions.chooseWord(choice.id)}
-                      className="w-full cursor-pointer rounded-xl border-2 border-play-ink bg-play-sand px-4 py-2.5 font-play-display text-base font-bold text-play-ink transition-colors hover:bg-play-blue hover:text-white"
+                      className="w-full cursor-pointer rounded-xl border-2 border-play-ink bg-play-sand px-4 py-2.5 font-play-display text-base font-bold text-play-ink transition-[color,background-color,transform] active:scale-95 hover:bg-play-blue hover:text-white"
                     >
                       {choice.text}
                     </button>
@@ -1062,7 +1063,11 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
                 aria-label="Open tool picker"
                 aria-expanded={false}
                 onClick={() => setToolbarOpen(true)}
-                className="absolute top-3 right-3 z-20 flex size-12 items-center justify-center rounded-full border-[3px] border-play-ink bg-white text-play-ink shadow-[3px_3px_0_var(--color-play-ink)]"
+                style={pressStyle(3)}
+                className={cn(
+                  "absolute top-3 right-3 z-20 flex size-12 items-center justify-center rounded-full border-[3px] border-play-ink bg-white text-play-ink shadow-[3px_3px_0_var(--color-play-ink)]",
+                  PRESS_CLASS,
+                )}
               >
                 <CurrentToolIcon className="size-5" />
                 <span

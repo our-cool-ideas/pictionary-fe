@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Globe2, Loader2, Lock, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Globe2, Loader2, Lock, Shapes, Sparkles } from "lucide-react";
 import { usePublicCategories } from "@/modules/player/hooks/use-public-categories";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { usePlayerIdentity } from "@/hooks/use-player-identity";
+import { CategoryIcon } from "@/modules/player/components/category-icon";
 import { ROOM_VISIBILITY } from "@/lib/enums/room-visibility.enum";
-import { cn } from "@/lib/utils";
+import { PRESS_CLASS, cn, pressStyle } from "@/lib/utils";
+import type { PublicCategory } from "@/modules/player/types/category.type";
 
 // Sent as the room's targetScore (see room.validation.ts) — the game
 // resets and starts a fresh round the instant someone reaches it.
@@ -37,7 +39,13 @@ export function QuickCreateStrip() {
   // clicks a different one, and once they do, that choice sticks).
   const [chosenCategoryId, setChosenCategoryId] = useState<string | null>(null);
   const categoryId = chosenCategoryId ?? categories[0]?.id ?? null;
-  const categoryPageItems = categories.slice(categoryPage * CATEGORY_PAGE_SIZE, categoryPage * CATEGORY_PAGE_SIZE + CATEGORY_PAGE_SIZE);
+  // Grouped into whole pages up front (instead of slicing just the
+  // current one), same reasoning as AvatarPicker's `pages` — the sliding
+  // track below needs every page mounted side by side to have something
+  // to slide FROM and TO; swapping a single slice's contents can only
+  // ever hard-cut, never slide.
+  const categoryPages: PublicCategory[][] = [];
+  for (let i = 0; i < categoryPageCount; i++) categoryPages.push(categories.slice(i * CATEGORY_PAGE_SIZE, i * CATEGORY_PAGE_SIZE + CATEGORY_PAGE_SIZE));
 
   const [visibility, setVisibility] = useState<ROOM_VISIBILITY>(ROOM_VISIBILITY.PUBLIC);
   const [targetScore, setTargetScore] = useState<number>(DEFAULT_POINTS);
@@ -60,9 +68,17 @@ export function QuickCreateStrip() {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-3 rounded-[20px] border-[3px] border-play-ink bg-play-blue p-3.5 shadow-[5px_5px_0_var(--color-play-ink)]">
-        {/* Line 1 — visibility (labeled, not icon-only) + how many points
-            a round runs to. */}
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Both lines share this one grid instead of being two independent
+            flex rows — a plain `auto` column takes the widest content
+            placed in it across EVERY row of the grid, so "Choose a
+            Category" (row 2's label, wider than "Start a Room") is what
+            actually sets column 1's width, and row 1's shorter label just
+            gets left-aligned within that same width. That's what lines
+            the category carousel's controls up under the Public/Private
+            buttons above, instead of guessing at a fixed px offset. */}
+        <div className="grid grid-cols-[auto_auto_1fr] items-center gap-x-3 gap-y-3">
+          {/* Row 1 — visibility (labeled, not icon-only) + how many points
+              a round runs to. */}
           <div className="flex shrink-0 items-center gap-2">
             <Sparkles className="size-[18px] text-white" strokeWidth={2.2} />
             <span className="font-play-display text-[15px] font-bold whitespace-nowrap text-white">Start a Room</span>
@@ -70,110 +86,142 @@ export function QuickCreateStrip() {
 
           <div className="hidden h-8 w-0.5 shrink-0 bg-white/30 sm:block" />
 
-          <div className="flex shrink-0 gap-2">
-            <button
-              type="button"
-              aria-pressed={visibility === ROOM_VISIBILITY.PUBLIC}
-              onClick={() => setVisibility(ROOM_VISIBILITY.PUBLIC)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-xl px-3 py-2 font-play-display text-xs font-bold transition-transform",
-                visibility === ROOM_VISIBILITY.PUBLIC
-                  ? "-translate-y-0.5 border-[2.5px] border-play-ink bg-white text-play-ink shadow-[2.5px_2.5px_0_var(--color-play-ink)]"
-                  : "border-[2.5px] border-white/50 bg-white/20 text-white",
-              )}
-            >
-              <Globe2 className="size-4" strokeWidth={2.2} />
-              Public
-            </button>
-            <button
-              type="button"
-              aria-pressed={visibility === ROOM_VISIBILITY.PRIVATE}
-              onClick={() => setVisibility(ROOM_VISIBILITY.PRIVATE)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-xl px-3 py-2 font-play-display text-xs font-bold transition-transform",
-                visibility === ROOM_VISIBILITY.PRIVATE
-                  ? "-translate-y-0.5 border-[2.5px] border-play-ink bg-white text-play-ink shadow-[2.5px_2.5px_0_var(--color-play-ink)]"
-                  : "border-[2.5px] border-white/50 bg-white/20 text-white",
-              )}
-            >
-              <Lock className="size-4" strokeWidth={2.2} />
-              Private
-            </button>
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                aria-pressed={visibility === ROOM_VISIBILITY.PUBLIC}
+                onClick={() => setVisibility(ROOM_VISIBILITY.PUBLIC)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-xl px-3 py-2 font-play-display text-xs font-bold transition-transform",
+                  visibility === ROOM_VISIBILITY.PUBLIC
+                    ? "-translate-y-0.5 border-[2.5px] border-play-ink bg-white text-play-ink shadow-[2.5px_2.5px_0_var(--color-play-ink)]"
+                    : "border-[2.5px] border-white/50 bg-white/20 text-white",
+                )}
+              >
+                <Globe2 className="size-4" strokeWidth={2.2} />
+                Public
+              </button>
+              <button
+                type="button"
+                aria-pressed={visibility === ROOM_VISIBILITY.PRIVATE}
+                onClick={() => setVisibility(ROOM_VISIBILITY.PRIVATE)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-xl px-3 py-2 font-play-display text-xs font-bold transition-transform",
+                  visibility === ROOM_VISIBILITY.PRIVATE
+                    ? "-translate-y-0.5 border-[2.5px] border-play-ink bg-white text-play-ink shadow-[2.5px_2.5px_0_var(--color-play-ink)]"
+                    : "border-[2.5px] border-white/50 bg-white/20 text-white",
+                )}
+              >
+                <Lock className="size-4" strokeWidth={2.2} />
+                Private
+              </button>
+            </div>
+
+            <div className="hidden h-8 w-0.5 shrink-0 bg-white/30 sm:block" />
+
+            <label className="flex shrink-0 items-center gap-1.5">
+              <span className="font-play-display text-[11px] font-bold tracking-wide text-white/70 uppercase">Round ends at</span>
+              <select
+                value={targetScore}
+                onChange={(e) => setTargetScore(Number(e.target.value))}
+                className="rounded-xl border-[2.5px] border-play-ink bg-white px-2.5 py-2 font-play-display text-xs font-bold text-play-ink outline-none"
+              >
+                {POINT_OPTIONS.map((points) => (
+                  <option key={points} value={points}>
+                    {points} pts
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {/* Row 2 — category carousel: big labeled boxes instead of a row
+              of tiny icon buttons, sliding a page at a time instead of
+              hard-cutting (same track/viewport technique as AvatarPicker —
+              see its own comments for why a plain slice-swap can't slide). */}
+          <div className="flex shrink-0 items-center gap-2">
+            <Shapes className="size-[18px] text-white" strokeWidth={2.2} />
+            <span className="font-play-display text-[15px] font-bold whitespace-nowrap text-white">Choose a Category</span>
           </div>
 
           <div className="hidden h-8 w-0.5 shrink-0 bg-white/30 sm:block" />
 
-          <label className="flex shrink-0 items-center gap-1.5">
-            <span className="font-play-display text-[11px] font-bold tracking-wide text-white/70 uppercase">Round ends at</span>
-            <select
-              value={targetScore}
-              onChange={(e) => setTargetScore(Number(e.target.value))}
-              className="rounded-xl border-[2.5px] border-play-ink bg-white px-2.5 py-2 font-play-display text-xs font-bold text-play-ink outline-none"
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              type="button"
+              aria-label="Previous categories"
+              disabled={categoryPage === 0}
+              onClick={() => setCategoryPage((p) => p - 1)}
+              className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-white/50 bg-white/20 text-white disabled:opacity-30"
             >
-              {POINT_OPTIONS.map((points) => (
-                <option key={points} value={points}>
-                  {points} pts
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+              <ChevronLeft className="size-4" strokeWidth={2.5} />
+            </button>
 
-        {/* Line 2 — category carousel: big labeled boxes instead of a row
-            of tiny icon buttons, with arrows to page through as the
-            category list grows rather than everything shrinking to fit. */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label="Previous categories"
-            disabled={categoryPage === 0}
-            onClick={() => setCategoryPage((p) => p - 1)}
-            className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-white/50 bg-white/20 text-white disabled:opacity-30"
-          >
-            <ChevronLeft className="size-4" strokeWidth={2.5} />
-          </button>
+            {/* The viewport — clips everything outside the current page's
+                width, exactly like AvatarPicker's own carousel window. A
+                small top pad gives the selected card's `-translate-y-0.5`
+                lift room to clear this box's edge without being clipped
+                (see AvatarPicker's identical note on its checkmark badge)
+                — left off the right/bottom, since nothing overhangs
+                there and padding on the sliding axis would let the next
+                page's edge peek through instead (also see AvatarPicker). */}
+            <div className="min-w-0 flex-1 overflow-hidden pt-1">
+              <div
+                className="flex transition-transform duration-[450ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                style={{ width: `${categoryPageCount * 100}%`, transform: `translateX(-${(categoryPage * 100) / categoryPageCount}%)` }}
+              >
+                {categoryPages.map((items, i) => (
+                  <div key={i} className="grid shrink-0 grid-cols-4 gap-2" style={{ width: `${100 / categoryPageCount}%` }}>
+                    {items.map((category) => {
+                      const selected = category.id === categoryId;
+                      return (
+                        <button
+                          key={category.id}
+                          type="button"
+                          aria-pressed={selected}
+                          tabIndex={i === categoryPage ? 0 : -1}
+                          onClick={() => setChosenCategoryId(category.id)}
+                          className={cn(
+                            "flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-3 transition-transform",
+                            selected
+                              ? "-translate-y-0.5 border-[2.5px] border-play-ink bg-white shadow-[3px_3px_0_var(--color-play-ink)]"
+                              : "border-[2.5px] border-white/50 bg-white/20",
+                          )}
+                        >
+                          <CategoryIcon name={category.name} className={cn("size-6", selected ? "text-play-ink" : "text-white")} />
+                          <span className={cn("max-w-full truncate font-play-display text-[11px] font-bold", selected ? "text-play-ink" : "text-white")}>{category.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
 
-          <div className="grid flex-1 grid-cols-4 gap-2">
-            {categoryPageItems.map((category) => {
-              const selected = category.id === categoryId;
-              return (
-                <button
-                  key={category.id}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => setChosenCategoryId(category.id)}
-                  className={cn(
-                    "flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-3 transition-transform",
-                    selected
-                      ? "-translate-y-0.5 border-[2.5px] border-play-ink bg-white shadow-[3px_3px_0_var(--color-play-ink)]"
-                      : "border-[2.5px] border-white/50 bg-white/20",
-                  )}
-                >
-                  <span className="text-2xl">{category.icon || "🎨"}</span>
-                  <span className={cn("max-w-full truncate font-play-display text-[11px] font-bold", selected ? "text-play-ink" : "text-white")}>{category.name}</span>
-                </button>
-              );
-            })}
+            <button
+              type="button"
+              aria-label="Next categories"
+              disabled={categoryPage >= categoryPageCount - 1}
+              onClick={() => setCategoryPage((p) => p + 1)}
+              className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-white/50 bg-white/20 text-white disabled:opacity-30"
+            >
+              <ChevronRight className="size-4" strokeWidth={2.5} />
+            </button>
+
+            <button
+              type="button"
+              disabled={!categoryId || creating}
+              onClick={handleCreate}
+              style={pressStyle(3)}
+              className={cn(
+                "ml-1 flex shrink-0 items-center gap-1.5 rounded-2xl border-[2.5px] border-play-ink bg-play-orange px-5 py-2.5 font-play-display text-sm font-bold text-white shadow-[3px_3px_0_var(--color-play-ink)] disabled:cursor-not-allowed disabled:opacity-60",
+                PRESS_CLASS,
+              )}
+            >
+              {creating ? <Loader2 className="size-4 animate-spin" /> : "Create"}
+            </button>
           </div>
-
-          <button
-            type="button"
-            aria-label="Next categories"
-            disabled={categoryPage >= categoryPageCount - 1}
-            onClick={() => setCategoryPage((p) => p + 1)}
-            className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-white/50 bg-white/20 text-white disabled:opacity-30"
-          >
-            <ChevronRight className="size-4" strokeWidth={2.5} />
-          </button>
-
-          <button
-            type="button"
-            disabled={!categoryId || creating}
-            onClick={handleCreate}
-            className="ml-1 flex shrink-0 items-center gap-1.5 rounded-2xl border-[2.5px] border-play-ink bg-play-orange px-5 py-2.5 font-play-display text-sm font-bold text-white shadow-[3px_3px_0_var(--color-play-ink)] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {creating ? <Loader2 className="size-4 animate-spin" /> : "Create"}
-          </button>
         </div>
 
         {categoryPageCount > 1 && (

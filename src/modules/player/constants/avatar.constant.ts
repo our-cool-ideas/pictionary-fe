@@ -1,5 +1,5 @@
 /**
- * Ten selectable guest avatars — small hand-drawn character illustrations
+ * Eleven selectable guest avatars — small hand-drawn character illustrations
  * (face shape + hair + eyes + mouth + shirt), never emoji, unlike the
  * category icons which are real backend data. Each character has its own
  * fixed skin tone, hair color, eye style and iris color baked into its
@@ -14,6 +14,7 @@ export enum AVATAR_ICON {
   GIRL_BUN = "girl-bun",
   GIRL_BOB = "girl-bob",
   GIRL_PIXIE = "girl-pixie",
+  GIRL_GLASSES = "girl-glasses",
   BOY_SHORT = "boy-short",
   BOY_CURLY = "boy-curly",
   BOY_BUZZ = "boy-buzz",
@@ -34,6 +35,7 @@ export const AVATAR_OPTIONS: AvatarOption[] = [
   { id: AVATAR_ICON.GIRL_BUN, color: "#3FAE6A", icon: AVATAR_ICON.GIRL_BUN, label: "Bun" },
   { id: AVATAR_ICON.GIRL_BOB, color: "#FF7A33", icon: AVATAR_ICON.GIRL_BOB, label: "Bob" },
   { id: AVATAR_ICON.GIRL_PIXIE, color: "#2AA9A0", icon: AVATAR_ICON.GIRL_PIXIE, label: "Pixie" },
+  { id: AVATAR_ICON.GIRL_GLASSES, color: "#6E8FB5", icon: AVATAR_ICON.GIRL_GLASSES, label: "Round glasses" },
   { id: AVATAR_ICON.BOY_SHORT, color: "#2F6FEB", icon: AVATAR_ICON.BOY_SHORT, label: "Short hair" },
   { id: AVATAR_ICON.BOY_CURLY, color: "#B23A48", icon: AVATAR_ICON.BOY_CURLY, label: "Curly" },
   { id: AVATAR_ICON.BOY_BUZZ, color: "#FFC83D", icon: AVATAR_ICON.BOY_BUZZ, label: "Buzz cut" },

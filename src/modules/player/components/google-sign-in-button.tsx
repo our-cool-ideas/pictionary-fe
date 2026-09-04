@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Clock } from "lucide-react";
+import { PRESS_CLASS, cn, pressStyle } from "@/lib/utils";
 
 /** The standard multi-color Google "G" mark, per Google's own third-party sign-in button guidance. */
 function GoogleGlyph() {
@@ -25,21 +26,39 @@ export function GoogleSignInButton() {
   const [showNote, setShowNote] = useState(false);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col">
       <button
         type="button"
         onClick={() => setShowNote(true)}
-        className="flex cursor-pointer items-center justify-center gap-2.5 rounded-2xl border-[3px] border-play-ink bg-white p-3 font-play-display text-[15px] font-semibold text-play-ink shadow-[3px_3px_0_var(--color-play-ink)]"
+        style={pressStyle(3)}
+        className={cn(
+          "flex cursor-pointer items-center justify-center gap-2.5 rounded-2xl border-[3px] border-play-ink bg-white p-3 font-play-display text-[15px] font-semibold text-play-ink shadow-[3px_3px_0_var(--color-play-ink)]",
+          PRESS_CLASS,
+        )}
       >
         <GoogleGlyph />
         Continue with Google
       </button>
-      {showNote && (
-        <div className="flex items-center gap-2 rounded-xl border-[2.5px] border-play-ink bg-play-yellow px-3 py-2 font-play-body text-xs leading-snug font-bold text-play-ink">
-          <Clock className="size-4 shrink-0" strokeWidth={2.5} />
-          Google sign-in is on its way — play as a guest for now!
+      {/* Animated open via the grid-rows 0fr/1fr trick instead of a plain
+          `showNote &&` mount — this note used to pop in with its full
+          height in one frame, which (since this card sits centered in a
+          min-h-screen flex box, see SignInPage) shoved the whole card
+          down a beat after the click instead of growing smoothly in
+          place. Grid is the only layout mode that can animate to/from an
+          actual "auto" height in pure CSS; the inner `overflow-hidden`
+          div is what actually clips the content while the row is still
+          collapsing. The gap to the button above lives as `mt-2` on the
+          innermost note itself (not a flex `gap-2` on this wrapper) so
+          that spacing collapses away too while closed, instead of
+          leaving a bare 8px sliver under the button. */}
+      <div className={`grid transition-[grid-template-rows] duration-200 ease-out ${showNote ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+        <div className="overflow-hidden">
+          <div className="mt-2 flex items-center gap-2 rounded-xl border-[2.5px] border-play-ink bg-play-yellow px-3 py-2 font-play-body text-xs leading-snug font-bold text-play-ink">
+            <Clock className="size-4 shrink-0" strokeWidth={2.5} />
+            Google sign-in is on its way — play as a guest for now!
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

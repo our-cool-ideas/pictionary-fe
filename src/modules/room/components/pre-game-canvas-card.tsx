@@ -5,6 +5,7 @@ import { Check, Copy, Loader2, Play } from "lucide-react";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { useSocket } from "@/hooks/use-socket";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "@/modules/room/constants/canvas.constant";
+import { PRESS_CLASS, cn, pressStyle } from "@/lib/utils";
 
 /**
  * Sits inside the canvas's own footprint (same width, border, and shadow)
@@ -77,14 +78,22 @@ export function PreGameCanvasCard() {
             disabled={!isHost || !canStart || starting}
             onClick={handleStart}
             aria-label="Start game"
-            className="flex size-16 items-center justify-center rounded-full border-[3px] border-play-ink bg-play-orange text-white shadow-[3px_3px_0_var(--color-play-ink)] transition-opacity disabled:cursor-not-allowed disabled:border-play-ink/25 disabled:bg-play-ink/10 disabled:text-play-ink/30 disabled:shadow-none"
+            style={pressStyle(3)}
+            className={cn(
+              "flex size-16 items-center justify-center rounded-full border-[3px] border-play-ink bg-play-orange text-white shadow-[3px_3px_0_var(--color-play-ink)] transition-opacity disabled:cursor-not-allowed disabled:border-play-ink/25 disabled:bg-play-ink/10 disabled:text-play-ink/30 disabled:shadow-none",
+              PRESS_CLASS,
+            )}
           >
             {starting ? <Loader2 className="size-6 animate-spin" /> : <Play className="size-6" fill="currentColor" />}
           </button>
           <button
             type="button"
             onClick={handleCopyLink}
-            className="flex items-center gap-1.5 rounded-xl border-2 border-play-ink bg-white px-4 py-2.5 font-play-display text-sm font-bold text-play-ink shadow-[2px_2px_0_var(--color-play-ink)]"
+            style={pressStyle(2)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-xl border-2 border-play-ink bg-white px-4 py-2.5 font-play-display text-sm font-bold text-play-ink shadow-[2px_2px_0_var(--color-play-ink)]",
+              PRESS_CLASS,
+            )}
           >
             {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
             {copied ? "Copied!" : "Copy room link"}

@@ -6,6 +6,7 @@ import { GoogleSignInButton } from "@/modules/player/components/google-sign-in-b
 import { AvatarPicker } from "@/modules/player/components/avatar-picker";
 import { PlayerNameField } from "@/modules/player/components/player-name-field";
 import { usePlayerIdentity } from "@/hooks/use-player-identity";
+import { PRESS_CLASS, cn, pressStyle } from "@/lib/utils";
 
 export function SignInPage() {
   const router = useRouter();
@@ -42,14 +43,28 @@ export function SignInPage() {
           type="button"
           disabled={!hasName}
           onClick={() => router.push("/rooms")}
-          className="flex items-center justify-center gap-2 rounded-2xl border-[3px] border-play-ink bg-play-orange p-3.5 font-play-display text-lg font-bold text-white shadow-[4px_4px_0_var(--color-play-ink)] disabled:cursor-not-allowed disabled:opacity-50"
+          style={pressStyle(4)}
+          className={cn(
+            "flex items-center justify-center gap-2 rounded-2xl border-[3px] border-play-ink bg-play-orange p-3.5 font-play-display text-lg font-bold text-white shadow-[4px_4px_0_var(--color-play-ink)] disabled:cursor-not-allowed disabled:opacity-50",
+            PRESS_CLASS,
+          )}
         >
           Start
           <ArrowRight className="size-4.5" strokeWidth={2.5} />
         </button>
-        {!hasName && (
-          <p className="-mt-2.5 text-center font-play-body text-xs font-bold text-play-ink/50">Pick a name to start playing.</p>
-        )}
+        {/* Same grid-rows animation as GoogleSignInButton's note, and for
+            the same reason — this used to be a plain `{!hasName && ...}`
+            mount, so the whole card visibly jumped the instant a name got
+            typed (or cleared) instead of the hint smoothly folding away.
+            The `-mt-2.5` that used to sit directly on the <p> (pulling it
+            closer to the button than the parent's gap-4.5) stays on this
+            outer wrapper instead — it's a plain margin on a flex child,
+            untouched by the grid-rows collapse happening one level in. */}
+        <div className={`-mt-2.5 grid transition-[grid-template-rows] duration-200 ease-out ${!hasName ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+          <div className="overflow-hidden">
+            <p className="text-center font-play-body text-xs font-bold text-play-ink/50">Pick a name to start playing.</p>
+          </div>
+        </div>
       </div>
     </div>
   );

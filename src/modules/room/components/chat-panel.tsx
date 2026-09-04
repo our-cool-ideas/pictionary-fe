@@ -5,7 +5,7 @@ import { Send, Target } from "lucide-react";
 import { useSocket } from "@/hooks/use-socket";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { TurnStatusHeader } from "@/modules/room/components/turn-status-header";
-import { cn } from "@/lib/utils";
+import { PRESS_CLASS, cn, pressStyle } from "@/lib/utils";
 
 interface ChatPanelProps {
   isDrawer: boolean;
@@ -116,7 +116,11 @@ export function ChatPanel({ isDrawer }: ChatPanelProps) {
         <button
           type="submit"
           disabled={inputDisabled || sending || !draft.trim()}
-          className="flex size-9 shrink-0 items-center justify-center rounded-xl border-2 border-play-ink bg-play-orange text-white shadow-[2px_2px_0_var(--color-play-ink)] disabled:cursor-not-allowed disabled:opacity-50"
+          style={pressStyle(2)}
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-xl border-2 border-play-ink bg-play-orange text-white shadow-[2px_2px_0_var(--color-play-ink)] disabled:cursor-not-allowed disabled:opacity-50",
+            PRESS_CLASS,
+          )}
         >
           <Send className="size-4" />
         </button>

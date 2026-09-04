@@ -3,7 +3,7 @@
 import { Check, Circle, Eraser, PaintBucket, Pencil, Redo2, Slash, Square, Trash2, Undo2 } from "lucide-react";
 import { STROKE_COLOR_SWATCHES, STROKE_WIDTH_PRESETS } from "@/modules/room/constants/canvas.constant";
 import type { CanvasTool } from "@/modules/room/types/canvas-tool.type";
-import { cn } from "@/lib/utils";
+import { PRESS_CLASS, cn, pressStyle } from "@/lib/utils";
 
 interface CanvasToolbarProps {
   color: string;
@@ -36,6 +36,10 @@ const ICON_SIZE = "w-[clamp(0.8rem,1.6vh,1rem)] h-[clamp(0.8rem,1.6vh,1rem)]";
 // control looks consistent, tool buttons and color swatches alike,
 // selected or not, rather than some having it and some not.
 const CONTROL_SHADOW = "shadow-[2px_2px_0_var(--color-play-ink)]";
+// Every control here shares the same 2px shadow offset, so they all press
+// by the same amount too — see PRESS_CLASS's own doc comment for why this
+// has to be a CSS variable rather than a per-button arbitrary-value class.
+const CONTROL_PRESS_STYLE = pressStyle(2);
 
 // Selected state is a plain color swap — same border width, same
 // position, nothing scales or shifts. An earlier version nudged the
@@ -49,6 +53,7 @@ function toolButtonClass(active: boolean) {
   return cn(
     `flex ${CONTROL_SIZE} items-center justify-center rounded-xl border-2 transition-colors ${CONTROL_SHADOW}`,
     active ? "border-play-blue bg-play-blue text-white" : "border-play-ink bg-white text-play-ink",
+    PRESS_CLASS,
   );
 }
 
@@ -56,6 +61,7 @@ function actionButtonClass(disabled: boolean) {
   return cn(
     `flex ${CONTROL_SIZE} items-center justify-center rounded-xl border-2 border-play-ink bg-white text-play-ink transition-opacity ${CONTROL_SHADOW}`,
     disabled && "cursor-not-allowed opacity-40",
+    PRESS_CLASS,
   );
 }
 
@@ -144,7 +150,7 @@ export function CanvasToolbar({ color, onColorChange, tool, onToolChange, width,
         <SectionLabel>Tools</SectionLabel>
         <div className="grid grid-cols-2 gap-1.5">
           {TOOL_BUTTONS.map(({ tool: t, label, icon: Icon, filled }) => (
-            <button key={t} type="button" aria-label={label} aria-pressed={tool === t} onClick={() => onToolChange(t)} className={toolButtonClass(tool === t)}>
+            <button key={t} type="button" aria-label={label} aria-pressed={tool === t} onClick={() => onToolChange(t)} style={CONTROL_PRESS_STYLE} className={toolButtonClass(tool === t)}>
               <Icon className={ICON_SIZE} fill={filled ? "currentColor" : "none"} />
             </button>
           ))}
@@ -156,13 +162,13 @@ export function CanvasToolbar({ color, onColorChange, tool, onToolChange, width,
       <div className="flex flex-col gap-1.5">
         <SectionLabel>Actions</SectionLabel>
         <div className="grid grid-cols-2 gap-1.5">
-          <button type="button" aria-label="Undo" onClick={onUndo} disabled={!canUndo} className={actionButtonClass(!canUndo)}>
+          <button type="button" aria-label="Undo" onClick={onUndo} disabled={!canUndo} style={CONTROL_PRESS_STYLE} className={actionButtonClass(!canUndo)}>
             <Undo2 className={ICON_SIZE} />
           </button>
-          <button type="button" aria-label="Redo" onClick={onRedo} className={actionButtonClass(false)}>
+          <button type="button" aria-label="Redo" onClick={onRedo} style={CONTROL_PRESS_STYLE} className={actionButtonClass(false)}>
             <Redo2 className={ICON_SIZE} />
           </button>
-          <button type="button" aria-label="Clear canvas" onClick={onClear} className={cn(actionButtonClass(false), "col-span-2")}>
+          <button type="button" aria-label="Clear canvas" onClick={onClear} style={CONTROL_PRESS_STYLE} className={cn(actionButtonClass(false), "col-span-2")}>
             <Trash2 className={ICON_SIZE} />
           </button>
         </div>
@@ -189,8 +195,9 @@ export function CanvasToolbar({ color, onColorChange, tool, onToolChange, width,
               className={cn(
                 `relative flex ${CONTROL_SIZE} items-center justify-center rounded-full border-2 transition-colors ${CONTROL_SHADOW}`,
                 color === swatch ? "border-play-blue" : "border-play-ink",
+                PRESS_CLASS,
               )}
-              style={{ backgroundColor: swatch }}
+              style={{ backgroundColor: swatch, ...CONTROL_PRESS_STYLE }}
             >
               {color === swatch && <Check className={cn(ICON_SIZE, "text-white drop-shadow-[0_0_1.5px_rgba(0,0,0,0.9)]")} />}
             </button>
@@ -214,6 +221,7 @@ export function CanvasToolbar({ color, onColorChange, tool, onToolChange, width,
               aria-label={`Brush size ${preset}`}
               aria-pressed={width === preset}
               onClick={() => onWidthChange(preset)}
+              style={CONTROL_PRESS_STYLE}
               className={toolButtonClass(width === preset)}
             >
               <span

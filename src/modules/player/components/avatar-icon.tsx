@@ -10,7 +10,10 @@ import { AVATAR_ICON } from "@/modules/player/constants/avatar.constant";
  * backdrop every call site paints behind this icon (see AvatarBadge,
  * AvatarPicker, Scoreboard, PlayerDetailModal). Everything is flat fills
  * plus a thick ink outline/stroke, matching the app's sticker look
- * elsewhere (thick borders, no gradients, no soft shading).
+ * elsewhere (thick borders, no gradients, no soft shading) — plus a
+ * flat highlight/shadow pair on the face (see Face below) for the
+ * slightly glossier, more "assertive" cartoon-avatar look this was
+ * redone to match, rather than the flatter original.
  */
 const INK = "#1a1a2e";
 
@@ -22,7 +25,7 @@ const HAIR = {
   darkBrown: "#3b2a20",
   navy: "#2b2438",
 } as const;
-const IRIS = { blue: "#4a7fc9", hazel: "#8a6a3f", green: "#3f8f5e", gray: "#6b7280", amber: "#c98a2e", brown: "#6b4226" } as const;
+const IRIS = { blue: "#4a7fc9", hazel: "#8a6a3f", green: "#3f8f5e", gray: "#6b7280", amber: "#c98a2e", brown: "#6b4226", steel: "#7c93a6" } as const;
 const BROW = { dark: "#3a2a1e", darker: "#2a1e14", blonde: "#7a5a1e" } as const;
 const NOSE_SHADOW = { light: "#d69b73", tan: "#c98456", deep: "#8a4a28" } as const;
 
@@ -32,29 +35,29 @@ function Ears({ skin, wide = false }: { skin: string; wide?: boolean }) {
   const cy = wide ? 8.7 : 8.4;
   return (
     <>
-      <ellipse cx={cx} cy={cy} rx="0.9" ry="1.3" fill={skin} stroke={INK} strokeWidth="0.35" />
-      <ellipse cx={cxR} cy={cy} rx="0.9" ry="1.3" fill={skin} stroke={INK} strokeWidth="0.35" />
+      <ellipse cx={cx} cy={cy} rx="0.9" ry="1.3" fill={skin} stroke={INK} strokeWidth="0.45" />
+      <ellipse cx={cxR} cy={cy} rx="0.9" ry="1.3" fill={skin} stroke={INK} strokeWidth="0.45" />
     </>
   );
 }
 
 function Shoulders({ color }: { color: string }) {
-  return <path d="M2.6 18C2.6 15 5.1 13.3 9 13.3C12.9 13.3 15.4 15 15.4 18Z" fill={color} stroke={INK} strokeWidth="0.45" strokeLinejoin="round" />;
+  return <path d="M2.6 18C2.6 15 5.1 13.3 9 13.3C12.9 13.3 15.4 15 15.4 18Z" fill={color} stroke={INK} strokeWidth="0.6" strokeLinejoin="round" />;
 }
 
 function HoodieStrings() {
   return (
     <>
-      <circle cx="8.3" cy="14.6" r="0.16" fill={INK} />
-      <circle cx="9.7" cy="14.6" r="0.16" fill={INK} />
-      <path d="M8.3 14.6L8.1 15.6" stroke={INK} strokeWidth="0.25" />
-      <path d="M9.7 14.6L9.9 15.6" stroke={INK} strokeWidth="0.25" />
+      <circle cx="8.3" cy="14.6" r="0.2" fill={INK} />
+      <circle cx="9.7" cy="14.6" r="0.2" fill={INK} />
+      <path d="M8.3 14.6L8.1 15.6" stroke={INK} strokeWidth="0.3" />
+      <path d="M9.7 14.6L9.9 15.6" stroke={INK} strokeWidth="0.3" />
     </>
   );
 }
 
 function RoundCollar() {
-  return <path d="M7.5 13.4C8 14 10 14 10.5 13.4" fill="none" stroke={INK} strokeWidth="0.3" />;
+  return <path d="M7.5 13.4C8 14 10 14 10.5 13.4" fill="none" stroke={INK} strokeWidth="0.4" />;
 }
 
 const FACE_OVAL = "M9 2.2C11.8 2.2 13.6 4.4 13.6 7.6C13.6 10 12.6 12.5 11 13.8C10.4 14.3 9.7 14.6 9 14.6C8.3 14.6 7.6 14.3 7 13.8C5.4 12.5 4.4 10 4.4 7.6C4.4 4.4 6.2 2.2 9 2.2Z";
@@ -62,12 +65,24 @@ const FACE_WIDE = "M9 2.4C12.2 2.4 14.2 4.8 14.2 7.9C14.2 11.4 12 14.3 9 14.3C6 
 const FACE_SQUARE = "M9 2.3C11.6 2.3 13.4 4.3 13.6 6.9C13.7 9 13.4 11.2 12.3 12.7C11.7 13.5 10.9 13.9 9 13.9C7.1 13.9 6.3 13.5 5.7 12.7C4.6 11.2 4.3 9 4.4 6.9C4.6 4.3 6.4 2.3 9 2.3Z";
 
 function Face({ shape, skin }: { shape: string; skin: string }) {
-  return <path d={shape} fill={skin} stroke={INK} strokeWidth="0.45" strokeLinejoin="round" />;
+  return (
+    <>
+      <path d={shape} fill={skin} stroke={INK} strokeWidth="0.65" strokeLinejoin="round" />
+      {/* A flat shadow crescent under the cheeks/chin and a flat highlight
+          over the forehead — both just semi-transparent flat fills, no
+          gradients or blurs (keeps the sticker look), but they're what
+          actually reads as "glossy"/dimensional at a glance instead of a
+          totally flat color disc. Purely decorative, so they're clipped
+          to nothing meaningful if a hairstyle happens to sit on top. */}
+      <ellipse cx="9" cy="12.4" rx="3.7" ry="1.5" fill="#00000014" />
+      <ellipse cx="6.7" cy="4.1" rx="1.7" ry="1.05" fill="#ffffff40" transform="rotate(-20 6.7 4.1)" />
+    </>
+  );
 }
 
 function Eyebrows({ girl, color, cy = 8.8 }: { girl: boolean; color: string; cy?: number }) {
-  const ry = girl ? 0.14 : 0.2;
-  const rx = girl ? 0.85 : 0.9;
+  const ry = girl ? 0.16 : 0.22;
+  const rx = girl ? 0.9 : 0.95;
   const rot = girl ? 12 : 6;
   return (
     <>
@@ -77,13 +92,13 @@ function Eyebrows({ girl, color, cy = 8.8 }: { girl: boolean; color: string; cy?
   );
 }
 
-function EyeDetail({ cx, cy, iris, r = 0.75, rIris = 0.42 }: { cx: number; cy: number; iris: string; r?: number; rIris?: number }) {
+function EyeDetail({ cx, cy, iris, r = 0.85, rIris = 0.5 }: { cx: number; cy: number; iris: string; r?: number; rIris?: number }) {
   return (
     <>
-      <ellipse cx={cx} cy={cy} rx={r} ry={r * 0.8} fill="#fff" stroke={INK} strokeWidth="0.15" />
+      <ellipse cx={cx} cy={cy} rx={r} ry={r * 0.82} fill="#fff" stroke={INK} strokeWidth="0.22" />
       <circle cx={cx} cy={cy} r={rIris} fill={iris} />
-      <circle cx={cx} cy={cy} r={rIris * 0.43} fill={INK} />
-      <circle cx={cx - 0.25} cy={cy - 0.2} r="0.08" fill="#fff" />
+      <circle cx={cx} cy={cy} r={rIris * 0.5} fill={INK} />
+      <circle cx={cx - 0.28} cy={cy - 0.22} r="0.11" fill="#fff" />
     </>
   );
 }
@@ -100,8 +115,8 @@ function RoundEyes({ iris, cy = 9.7 }: { iris: string; cy?: number }) {
 function BigEyes({ iris, cy = 9.6 }: { iris: string; cy?: number }) {
   return (
     <>
-      <EyeDetail cx={6.85} cy={cy} iris={iris} r={0.95} rIris={0.52} />
-      <EyeDetail cx={11.15} cy={cy} iris={iris} r={0.95} rIris={0.52} />
+      <EyeDetail cx={6.85} cy={cy} iris={iris} r={1.05} rIris={0.6} />
+      <EyeDetail cx={11.15} cy={cy} iris={iris} r={1.05} rIris={0.6} />
     </>
   );
 }
@@ -109,18 +124,18 @@ function BigEyes({ iris, cy = 9.6 }: { iris: string; cy?: number }) {
 function AlmondEyes({ iris, cy = 9.7 }: { iris: string; cy?: number }) {
   return (
     <>
-      <ellipse cx="6.9" cy={cy} rx="0.8" ry="0.4" fill="#fff" stroke={INK} strokeWidth="0.15" transform={`rotate(-4 6.9 ${cy})`} />
-      <ellipse cx="11.1" cy={cy} rx="0.8" ry="0.4" fill="#fff" stroke={INK} strokeWidth="0.15" transform={`rotate(4 11.1 ${cy})`} />
-      <circle cx="6.9" cy={cy} r="0.34" fill={iris} />
-      <circle cx="11.1" cy={cy} r="0.34" fill={iris} />
-      <circle cx="6.9" cy={cy} r="0.15" fill={INK} />
-      <circle cx="11.1" cy={cy} r="0.15" fill={INK} />
+      <ellipse cx="6.9" cy={cy} rx="0.85" ry="0.44" fill="#fff" stroke={INK} strokeWidth="0.22" transform={`rotate(-4 6.9 ${cy})`} />
+      <ellipse cx="11.1" cy={cy} rx="0.85" ry="0.44" fill="#fff" stroke={INK} strokeWidth="0.22" transform={`rotate(4 11.1 ${cy})`} />
+      <circle cx="6.9" cy={cy} r="0.4" fill={iris} />
+      <circle cx="11.1" cy={cy} r="0.4" fill={iris} />
+      <circle cx="6.9" cy={cy} r="0.19" fill={INK} />
+      <circle cx="11.1" cy={cy} r="0.19" fill={INK} />
     </>
   );
 }
 
 function ClosedArc({ cx, cy = 9.75 }: { cx: number; cy?: number }) {
-  return <path d={`M${cx - 0.75} ${cy}Q${cx} ${cy - 0.5} ${cx + 0.75} ${cy}`} fill="none" stroke={INK} strokeWidth="0.38" strokeLinecap="round" />;
+  return <path d={`M${cx - 0.8} ${cy}Q${cx} ${cy - 0.62} ${cx + 0.8} ${cy}`} fill="none" stroke={INK} strokeWidth="0.5" strokeLinecap="round" />;
 }
 
 function ClosedHappyEyes({ cy = 9.75 }: { cy?: number }) {
@@ -141,12 +156,12 @@ function WinkEyes({ iris, cy = 9.7 }: { iris: string; cy?: number }) {
   );
 }
 
-function Glasses({ cy = 9.7, r = 1.25 }: { cy?: number; r?: number }) {
+function Glasses({ cy = 9.7, r = 1.3 }: { cy?: number; r?: number }) {
   return (
     <>
-      <circle cx="6.9" cy={cy} r={r} fill="none" stroke={INK} strokeWidth="0.5" />
-      <circle cx="11.1" cy={cy} r={r} fill="none" stroke={INK} strokeWidth="0.5" />
-      <path d={`M${8.15} ${cy}L${9.85} ${cy}`} stroke={INK} strokeWidth="0.5" />
+      <circle cx="6.9" cy={cy} r={r} fill="none" stroke={INK} strokeWidth="0.62" />
+      <circle cx="11.1" cy={cy} r={r} fill="none" stroke={INK} strokeWidth="0.62" />
+      <path d={`M${8.1} ${cy}L${9.9} ${cy}`} stroke={INK} strokeWidth="0.62" />
     </>
   );
 }
@@ -156,15 +171,15 @@ function Nose({ shadow }: { shadow: string }) {
 }
 
 function BigSmile() {
-  return <path d="M7.2 12.1Q9 13.6 10.8 12.1Q9 13 7.2 12.1Z" fill="#fff" stroke={INK} strokeWidth="0.3" strokeLinejoin="round" />;
+  return <path d="M7.2 12.1Q9 13.6 10.8 12.1Q9 13 7.2 12.1Z" fill="#fff" stroke={INK} strokeWidth="0.42" strokeLinejoin="round" />;
 }
 
 function NeutralSmile() {
-  return <path d="M7.6 12.3Q9 12.85 10.4 12.3" fill="none" stroke={INK} strokeWidth="0.4" strokeLinecap="round" />;
+  return <path d="M7.6 12.3Q9 12.85 10.4 12.3" fill="none" stroke={INK} strokeWidth="0.55" strokeLinecap="round" />;
 }
 
 function Smirk() {
-  return <path d="M7.6 12.4Q9.3 12.9 10.3 12" fill="none" stroke={INK} strokeWidth="0.4" strokeLinecap="round" />;
+  return <path d="M7.6 12.4Q9.3 12.9 10.3 12" fill="none" stroke={INK} strokeWidth="0.55" strokeLinecap="round" />;
 }
 
 // Hair — each hairstyle is its own small set of ink-outlined shapes, all
@@ -176,11 +191,11 @@ function LongHair({ color }: { color: string }) {
         d="M4.1 7.6C4.1 3.9 6.3 1.3 9 1.3C11.7 1.3 13.9 3.9 13.9 7.6C13.9 8.4 13.8 9.1 13.6 9.7C13.3 7.6 11.6 6 9.5 6C9.1 7 8.2 7.7 7.1 7.7C6.3 7.7 5.6 7.3 5.2 6.7C4.7 7.5 4.3 8.5 4.2 9.6C4.2 9 4.1 8.3 4.1 7.6Z"
         fill={color}
         stroke={INK}
-        strokeWidth="0.4"
+        strokeWidth="0.55"
         strokeLinejoin="round"
       />
-      <path d="M4.2 7.2C3.6 9.2 3.6 11.7 4.3 13.6C4.8 12.6 5 10.5 4.9 8.5C4.9 8 4.6 7.5 4.2 7.2Z" fill={color} stroke={INK} strokeWidth="0.35" strokeLinejoin="round" />
-      <path d="M13.8 7.2C14.4 9.2 14.4 11.7 13.7 13.6C13.2 12.6 13 10.5 13.1 8.5C13.1 8 13.4 7.5 13.8 7.2Z" fill={color} stroke={INK} strokeWidth="0.35" strokeLinejoin="round" />
+      <path d="M4.2 7.2C3.6 9.2 3.6 11.7 4.3 13.6C4.8 12.6 5 10.5 4.9 8.5C4.9 8 4.6 7.5 4.2 7.2Z" fill={color} stroke={INK} strokeWidth="0.5" strokeLinejoin="round" />
+      <path d="M13.8 7.2C14.4 9.2 14.4 11.7 13.7 13.6C13.2 12.6 13 10.5 13.1 8.5C13.1 8 13.4 7.5 13.8 7.2Z" fill={color} stroke={INK} strokeWidth="0.5" strokeLinejoin="round" />
     </>
   );
 }
@@ -192,10 +207,10 @@ function PonytailHair({ color }: { color: string }) {
         d="M4.2 7.6C4.2 4.1 6.3 1.6 9 1.6C11.7 1.6 13.8 4.1 13.8 7.6C13.8 7.9 13.78 8.2 13.7 8.5C13.4 6.9 11.6 5.6 9.2 5.5C9.1 6.4 8.4 7 7.4 7C6.6 7 5.9 6.6 5.5 6C4.9 6.7 4.5 7.6 4.3 8.6C4.24 8.2 4.2 7.9 4.2 7.6Z"
         fill={color}
         stroke={INK}
-        strokeWidth="0.4"
+        strokeWidth="0.55"
         strokeLinejoin="round"
       />
-      <path d="M13.3 5.7C14.9 6.1 15.8 7.8 15.4 9.4C15.1 10.6 14 11.4 13.2 11.4C13.9 9.4 13.6 7.2 13.3 5.7Z" fill={color} stroke={INK} strokeWidth="0.4" strokeLinejoin="round" />
+      <path d="M13.3 5.7C14.9 6.1 15.8 7.8 15.4 9.4C15.1 10.6 14 11.4 13.2 11.4C13.9 9.4 13.6 7.2 13.3 5.7Z" fill={color} stroke={INK} strokeWidth="0.55" strokeLinejoin="round" />
     </>
   );
 }
@@ -207,10 +222,10 @@ function BunHair({ color }: { color: string }) {
         d="M4.3 7.4C4.3 4 6.4 1.5 9 1.5C11.6 1.5 13.7 4 13.7 7.4C13.7 7.7 13.68 8 13.6 8.3C13.3 6.8 11.5 5.6 9.2 5.5C9.1 6.3 8.4 6.9 7.5 6.9C6.7 6.9 6 6.5 5.6 5.9C5 6.6 4.6 7.5 4.4 8.4C4.34 8 4.3 7.7 4.3 7.4Z"
         fill={color}
         stroke={INK}
-        strokeWidth="0.4"
+        strokeWidth="0.55"
         strokeLinejoin="round"
       />
-      <circle cx="9" cy="1.3" r="1.15" fill={color} stroke={INK} strokeWidth="0.4" />
+      <circle cx="9" cy="1.6" r="1.15" fill={color} stroke={INK} strokeWidth="0.55" />
     </>
   );
 }
@@ -222,11 +237,11 @@ function BobHair({ color }: { color: string }) {
         d="M4.1 7.9C4.1 4.2 6.3 1.6 9 1.6C11.7 1.6 13.9 4.2 13.9 7.9C13.9 8.7 13.8 9.4 13.6 10C13.3 7.9 11.6 6.3 9.5 6.3C9.1 7.3 8.2 8 7.1 8C6.3 8 5.6 7.6 5.2 7C4.7 7.8 4.3 8.8 4.2 9.9C4.14 9.4 4.1 8.7 4.1 7.9Z"
         fill={color}
         stroke={INK}
-        strokeWidth="0.4"
+        strokeWidth="0.55"
         strokeLinejoin="round"
       />
-      <path d="M4.15 7.6C3.85 9.1 3.95 10.6 4.35 11.7C4.85 11.1 5.05 9.7 4.95 8.3C4.93 8 4.55 7.8 4.15 7.6Z" fill={color} stroke={INK} strokeWidth="0.35" strokeLinejoin="round" />
-      <path d="M13.85 7.6C14.15 9.1 14.05 10.6 13.65 11.7C13.15 11.1 12.95 9.7 13.05 8.3C13.07 8 13.45 7.8 13.85 7.6Z" fill={color} stroke={INK} strokeWidth="0.35" strokeLinejoin="round" />
+      <path d="M4.15 7.6C3.85 9.1 3.95 10.6 4.35 11.7C4.85 11.1 5.05 9.7 4.95 8.3C4.93 8 4.55 7.8 4.15 7.6Z" fill={color} stroke={INK} strokeWidth="0.5" strokeLinejoin="round" />
+      <path d="M13.85 7.6C14.15 9.1 14.05 10.6 13.65 11.7C13.15 11.1 12.95 9.7 13.05 8.3C13.07 8 13.45 7.8 13.85 7.6Z" fill={color} stroke={INK} strokeWidth="0.5" strokeLinejoin="round" />
     </>
   );
 }
@@ -237,7 +252,7 @@ const SHORT_DOME =
 function PixieHair({ color }: { color: string }) {
   return (
     <>
-      <path d={SHORT_DOME} fill={color} stroke={INK} strokeWidth="0.4" strokeLinejoin="round" />
+      <path d={SHORT_DOME} fill={color} stroke={INK} strokeWidth="0.55" strokeLinejoin="round" />
       <path d="M8.3 4.3L9 3.4L9.7 4.3Z" fill={color} />
     </>
   );
@@ -247,7 +262,7 @@ function ShortHair({ color }: { color: string }) {
   const highlight = "#ffffff33";
   return (
     <>
-      <path d={SHORT_DOME} fill={color} stroke={INK} strokeWidth="0.4" strokeLinejoin="round" />
+      <path d={SHORT_DOME} fill={color} stroke={INK} strokeWidth="0.55" strokeLinejoin="round" />
       <path d="M5.6 6.6C6.3 5.3 7.6 4.4 9 4.3C8.4 5.1 7.5 5.6 6.5 5.7C6.1 6 5.8 6.3 5.6 6.6Z" fill={highlight} />
     </>
   );
@@ -256,11 +271,11 @@ function ShortHair({ color }: { color: string }) {
 function CurlyHair({ color }: { color: string }) {
   return (
     <>
-      <circle cx="6" cy="4.3" r="1.9" fill={color} stroke={INK} strokeWidth="0.35" />
-      <circle cx="9" cy="3.1" r="2.1" fill={color} stroke={INK} strokeWidth="0.35" />
-      <circle cx="12" cy="4.3" r="1.9" fill={color} stroke={INK} strokeWidth="0.35" />
-      <circle cx="4.5" cy="6.5" r="1.4" fill={color} stroke={INK} strokeWidth="0.35" />
-      <circle cx="13.5" cy="6.5" r="1.4" fill={color} stroke={INK} strokeWidth="0.35" />
+      <circle cx="6" cy="4.3" r="1.9" fill={color} stroke={INK} strokeWidth="0.5" />
+      <circle cx="9" cy="3.1" r="2.1" fill={color} stroke={INK} strokeWidth="0.5" />
+      <circle cx="12" cy="4.3" r="1.9" fill={color} stroke={INK} strokeWidth="0.5" />
+      <circle cx="4.5" cy="6.5" r="1.4" fill={color} stroke={INK} strokeWidth="0.5" />
+      <circle cx="13.5" cy="6.5" r="1.4" fill={color} stroke={INK} strokeWidth="0.5" />
     </>
   );
 }
@@ -269,18 +284,18 @@ const BUZZ_CAP =
   "M4.3 7.3C4.3 4.2 6.4 2 9 2C11.6 2 13.7 4.2 13.7 7.3C13.7 7.6 13.68 7.9 13.6 8.1C13.3 6.6 11.4 5.4 9 5.4C6.6 5.4 4.7 6.6 4.4 8.1C4.32 7.9 4.3 7.6 4.3 7.3Z";
 
 function BuzzHair({ color }: { color: string }) {
-  return <path d={BUZZ_CAP} fill={color} stroke={INK} strokeWidth="0.4" strokeLinejoin="round" />;
+  return <path d={BUZZ_CAP} fill={color} stroke={INK} strokeWidth="0.55" strokeLinejoin="round" />;
 }
 
 function SpikyHair({ color }: { color: string }) {
   return (
     <>
-      <path d={BUZZ_CAP} fill={color} stroke={INK} strokeWidth="0.4" strokeLinejoin="round" />
+      <path d={BUZZ_CAP} fill={color} stroke={INK} strokeWidth="0.55" strokeLinejoin="round" />
       <path
         d="M5.9 5.6L6.6 2.3L8 5L9 2L10 5L11.4 2.3L12.1 5.6C11.2 4.6 10.1 4.2 9 4.2C7.9 4.2 6.8 4.6 5.9 5.6Z"
         fill={color}
         stroke={INK}
-        strokeWidth="0.35"
+        strokeWidth="0.5"
         strokeLinejoin="round"
       />
     </>
@@ -290,8 +305,53 @@ function SpikyHair({ color }: { color: string }) {
 function SidepartHair({ color, skin }: { color: string; skin: string }) {
   return (
     <>
-      <path d={BUZZ_CAP} fill={color} stroke={INK} strokeWidth="0.4" strokeLinejoin="round" />
-      <path d="M6.4 2.3Q7.7 3.5 6.2 5.7" fill="none" stroke={skin} strokeWidth="0.3" />
+      <path d={BUZZ_CAP} fill={color} stroke={INK} strokeWidth="0.55" strokeLinejoin="round" />
+      <path d="M6.4 2.3Q7.7 3.5 6.2 5.7" fill="none" stroke={skin} strokeWidth="0.4" />
+    </>
+  );
+}
+
+// Long, center-parted hair draping past the shoulders (unlike LongHair's
+// shorter side wisps) — the dome has a shallow notch at its peak plus a
+// thin center-part line, and the two side strands run all the way down
+// to y≈17.6, well past the face/shoulders, so they read as "flowing"
+// rather than "framing". That also means they run past where the shirt
+// gets cropped by the zoom transform (see AvatarIcon) — deliberate, same
+// as a real center-part photo where hair falls in front of the shoulders.
+function LongPartedHair({ color }: { color: string }) {
+  return (
+    <>
+      <path
+        d="M9 1.4C11.9 1.4 14.1 4 14.1 7.7C14.1 8.6 14 9.4 13.7 10.1C13.55 7.7 11.9 6 9.7 5.9C9.55 6 9.3 6 9 5.85C8.7 6 8.45 6 8.3 5.9C6.1 6 4.45 7.7 4.3 10.1C4 9.4 3.9 8.6 3.9 7.7C3.9 4 6.1 1.4 9 1.4Z"
+        fill={color}
+        stroke={INK}
+        strokeWidth="0.55"
+        strokeLinejoin="round"
+      />
+      <path d="M9 1.6L9 6.1" stroke={INK} strokeWidth="0.28" strokeLinecap="round" />
+      <path d="M4.1 7.4C3.2 10.4 3.1 14.4 4 17.6C4.7 15.8 5 12 4.8 9C4.75 8.4 4.45 7.8 4.1 7.4Z" fill={color} stroke={INK} strokeWidth="0.5" strokeLinejoin="round" />
+      <path d="M13.9 7.4C14.8 10.4 14.9 14.4 14 17.6C13.3 15.8 13 12 13.2 9C13.25 8.4 13.55 7.8 13.9 7.4Z" fill={color} stroke={INK} strokeWidth="0.5" strokeLinejoin="round" />
+    </>
+  );
+}
+
+// A row of overlapping circles along the collarbone, drawn on top of
+// Shoulders — the cheap flat-sticker way to suggest a fluffy/fur collar
+// without needing a soft-shaded raster texture.
+function FluffyCollar({ color }: { color: string }) {
+  const puffs = [
+    { cx: 5.1, cy: 13.3 },
+    { cx: 6.6, cy: 12.7 },
+    { cx: 8.1, cy: 12.35 },
+    { cx: 9.9, cy: 12.35 },
+    { cx: 11.4, cy: 12.7 },
+    { cx: 12.9, cy: 13.3 },
+  ];
+  return (
+    <>
+      {puffs.map((p) => (
+        <circle key={`${p.cx}-${p.cy}`} cx={p.cx} cy={p.cy} r="1" fill={color} stroke={INK} strokeWidth="0.4" />
+      ))}
     </>
   );
 }
@@ -346,7 +406,7 @@ const CHARACTERS: Record<AVATAR_ICON, (shirtColor: string) => ReactNode> = {
       <BobHair color={HAIR.darkBrown} />
       <Eyebrows girl color={BROW.darker} cy={8.85} />
       <BigEyes iris={IRIS.green} />
-      <Glasses cy={9.6} r={1.3} />
+      <Glasses cy={9.6} r={1.35} />
       <Nose shadow={NOSE_SHADOW.light} />
       <BigSmile />
     </>
@@ -361,6 +421,20 @@ const CHARACTERS: Record<AVATAR_ICON, (shirtColor: string) => ReactNode> = {
       <WinkEyes iris={IRIS.amber} />
       <Nose shadow={NOSE_SHADOW.tan} />
       <Smirk />
+    </>
+  ),
+  [AVATAR_ICON.GIRL_GLASSES]: (shirtColor) => (
+    <>
+      <Ears skin={SKIN.light} />
+      <Shoulders color={shirtColor} />
+      <FluffyCollar color={shirtColor} />
+      <Face shape={FACE_OVAL} skin={SKIN.light} />
+      <LongPartedHair color={HAIR.black} />
+      <Eyebrows girl color={BROW.darker} cy={8.8} />
+      <BigEyes iris={IRIS.steel} />
+      <Glasses cy={9.65} r={1.45} />
+      <Nose shadow={NOSE_SHADOW.light} />
+      <NeutralSmile />
     </>
   ),
   [AVATAR_ICON.BOY_SHORT]: (shirtColor) => (
@@ -440,11 +514,27 @@ interface AvatarIconProps {
   className?: string;
 }
 
+// Zooms the whole character in within its own 18x18 viewBox before the SVG
+// itself scales that to `size` px — the original art left a lot of dead
+// space on every side (see git history), which read as "the character is
+// floating in the middle of the badge" rather than filling it. Anchored
+// at the TOP edge vertically (no vertical translate — content at y=0
+// stays at y=0 and everything below just grows downward) specifically so
+// a hairstyle that already sits close to y=0 (the bun, the long-hair
+// apex) never gets pushed into negative territory and clipped; the
+// tradeoff is the shoulders/shirt now overflow the bottom of the
+// viewBox, which is fine — the SVG's own overflow:hidden crops that into
+// a natural "cropped at the chest" portrait look, same as the circular
+// badge cropping the corners via CSS `overflow-hidden` at each call
+// site. Horizontally it's centered on the face (x=9) as before.
+const ZOOM_SCALE = 1.25;
+const ZOOM_TRANSFORM = `translate(${(9 * (1 - ZOOM_SCALE)).toFixed(2)},0) scale(${ZOOM_SCALE})`;
+
 /** One of the ten hand-drawn player characters — see avatar.constant.ts. Flat fills + ink outlines, never emoji. */
 export function AvatarIcon({ icon, color = "#2F6FEB", size = 18, className }: AvatarIconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 18 18" className={className} aria-hidden="true">
-      {CHARACTERS[icon](color)}
+      <g transform={ZOOM_TRANSFORM}>{CHARACTERS[icon](color)}</g>
     </svg>
   );
 }

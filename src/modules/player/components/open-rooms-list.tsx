@@ -6,6 +6,8 @@ import { Loader2, Users } from "lucide-react";
 import { useOpenRooms } from "@/modules/player/hooks/use-open-rooms";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { usePlayerIdentity } from "@/hooks/use-player-identity";
+import { CategoryIcon } from "@/modules/player/components/category-icon";
+import { PRESS_CLASS, cn, pressStyle } from "@/lib/utils";
 
 export function OpenRoomsList() {
   const router = useRouter();
@@ -68,8 +70,8 @@ export function OpenRoomsList() {
               key={room.code}
               className="flex items-center gap-3 rounded-[18px] border-[3px] border-play-ink bg-play-yellow p-3.5 shadow-[4px_4px_0_var(--color-play-ink)]"
             >
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border-[2.5px] border-play-ink bg-white text-[22px]">
-                {room.category?.icon ?? "🎨"}
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border-[2.5px] border-play-ink bg-white">
+                <CategoryIcon name={room.category?.name} className="size-5 text-play-ink" />
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate font-play-display text-[15px] font-bold text-play-ink">
@@ -85,7 +87,11 @@ export function OpenRoomsList() {
                 type="button"
                 disabled={joiningCode !== null}
                 onClick={() => handleJoin(room.code)}
-                className="shrink-0 rounded-xl border-[2.5px] border-play-ink bg-play-blue px-4.5 py-2.5 font-play-display text-[13.5px] font-bold text-white shadow-[2.5px_2.5px_0_var(--color-play-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+                style={pressStyle(2.5)}
+                className={cn(
+                  "shrink-0 rounded-xl border-[2.5px] border-play-ink bg-play-blue px-4.5 py-2.5 font-play-display text-[13.5px] font-bold text-white shadow-[2.5px_2.5px_0_var(--color-play-ink)] disabled:cursor-not-allowed disabled:opacity-60",
+                  PRESS_CLASS,
+                )}
               >
                 {joiningCode === room.code ? <Loader2 className="size-4 animate-spin" /> : "Join"}
               </button>

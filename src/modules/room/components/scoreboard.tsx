@@ -81,7 +81,14 @@ export function Scoreboard({
                     gets its own distinct badge (a key, not a crown) and
                     drawer keeps its pencil, just restyled to match. */}
                 <span className="relative flex size-12 shrink-0 items-center justify-center rounded-full border-2 border-play-ink" style={{ backgroundColor: avatar.color }}>
-                  <AvatarIcon icon={avatar.icon} color={avatar.color} size={28} />
+                  {/* The host/drawer corner badges below are positioned
+                      OUTSIDE this circle on purpose (see the comment
+                      above) — overflow-hidden has to live on this inner
+                      span instead of the outer one, or it'd clip those
+                      badges right along with the avatar art. */}
+                  <span className="flex size-full items-center justify-center overflow-hidden rounded-full">
+                    <AvatarIcon icon={avatar.icon} color={avatar.color} size={44} />
+                  </span>
                   {player.isHost && (
                     <span
                       className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full border-2 border-white bg-play-orange"
