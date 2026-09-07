@@ -87,6 +87,18 @@ export function AvatarPicker() {
             style={{ width: `${PAGE_COUNT * 100}%`, transform: `translateX(-${(page * 100) / PAGE_COUNT}%)` }}
           >
             {pages.map((items, i) => (
+              // Fluid `minmax(0,1fr)` columns (Tailwind's plain
+              // `grid-cols-4`) — a FIXED avatar size here (whether the old
+              // `size-16` or a later attempt at fixed-width columns) only
+              // ever fits the one container width it was tuned for; any
+              // narrower one (a phone, or a card sized for a shorter form
+              // like JoinRoomForm) either overlaps the fixed circles into
+              // each other or clips them outright. Sizing the circle
+              // itself as a fraction of its own fluid cell instead (see
+              // the aspect-square span below) means this always fits
+              // exactly 4 across, at whatever size the container actually
+              // has — capped at 4rem (`max-w-16`) so it doesn't grow past
+              // the original design size on a roomy container either.
               <div key={i} className="grid shrink-0 grid-cols-4 gap-2 pr-1.5" style={{ width: `${100 / PAGE_COUNT}%` }}>
                 {items.map((avatar) => {
                   const selected = avatar.id === avatarId;
@@ -102,22 +114,31 @@ export function AvatarPicker() {
                       // tabbable, which reads as invisible dead stops.
                       tabIndex={i === page ? 0 : -1}
                       onClick={() => setAvatarId(avatar.id)}
-                      className="relative cursor-pointer justify-self-center"
+                      className="flex w-full cursor-pointer items-center justify-center"
                     >
-                      <span
-                        className={cn(
-                          "flex size-16 items-center justify-center overflow-hidden rounded-full transition-transform",
-                          selected ? "-translate-y-0.5 border-[3px] border-play-ink shadow-[2px_2px_0_var(--color-play-ink)]" : "border-[3px] border-black/10",
-                        )}
-                        style={{ backgroundColor: avatar.color }}
-                      >
-                        <AvatarIcon icon={avatar.icon} color={avatar.color} size={58} />
-                      </span>
-                      {selected && (
-                        <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full border-2 border-white bg-play-ink">
-                          <Check className="size-3" strokeWidth={3} />
+                      {/* This wrapper (not the button) is what the
+                          selected-checkmark badge below anchors to — it's
+                          exactly the circle's own box (capped aspect-square
+                          width) even when the button itself is wider than
+                          that cap on a roomy grid cell, so the badge stays
+                          glued to the circle's corner instead of drifting
+                          off toward the button's own, wider corner. */}
+                      <span className="relative aspect-square w-full max-w-16">
+                        <span
+                          className={cn(
+                            "flex size-full items-center justify-center overflow-hidden rounded-full transition-transform",
+                            selected ? "-translate-y-0.5 border-[3px] border-play-ink shadow-[2px_2px_0_var(--color-play-ink)]" : "border-[3px] border-black/10",
+                          )}
+                          style={{ backgroundColor: avatar.color }}
+                        >
+                          <AvatarIcon icon={avatar.icon} color={avatar.color} className="h-[85%] w-[85%]" />
                         </span>
-                      )}
+                        {selected && (
+                          <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full border-2 border-white bg-play-ink">
+                            <Check className="size-3" strokeWidth={3} />
+                          </span>
+                        )}
+                      </span>
                     </button>
                   );
                 })}

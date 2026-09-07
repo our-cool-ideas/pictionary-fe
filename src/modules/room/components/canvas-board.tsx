@@ -2,12 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Paintbrush, PartyPopper, DoorClosed } from "lucide-react";
+import { PartyPopper, DoorClosed } from "lucide-react";
 import { useSocket } from "@/hooks/use-socket";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { TurnProgressBar } from "@/modules/room/components/turn-progress-bar";
 import { PreGameCanvasCard } from "@/modules/room/components/pre-game-canvas-card";
-import { CanvasToolbar, TOOL_BUTTONS } from "@/modules/room/components/canvas-toolbar";
+import { CanvasToolbar } from "@/modules/room/components/canvas-toolbar";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, STROKE_FLUSH_INTERVAL_MS } from "@/modules/room/constants/canvas.constant";
 import { TURN_TRANSITION_DELAY_MS, ROUND_TRANSITION_DELAY_MS, WORD_CHOICE_DURATION_MS } from "@/modules/room/constants/turn.constant";
 import { useCountdown } from "@/modules/room/hooks/use-countdown";
@@ -16,20 +16,11 @@ import { getAvatarOption } from "@/modules/player/constants/avatar.constant";
 import { AvatarIcon } from "@/modules/player/components/avatar-icon";
 import type { CanvasTool } from "@/modules/room/types/canvas-tool.type";
 import type { DrawAction, StrokePoint } from "@/modules/room/types/game.type";
-import { PRESS_CLASS, cn, pressStyle } from "@/lib/utils";
 
 // The canvas element's own background (`bg-white`, below) — see
 // canvas-tool.type.ts's note on the eraser not being a real wire
 // primitive: it's just a stroke painted in this color.
 const ERASER_COLOR = "#ffffff";
-
-// How long a fresh turn's reveal stays on the canvas before the drawer
-// can actually start drawing — this is now where the word reveal lives
-// (see the drawer-specific branch below), not a one-time modal, so this
-// duration is a real gate on drawing itself, not just a cosmetic fade
-// timer: it's the same 5 seconds every player sees "it's your/their
-// turn," it's just the word underneath it for the drawer specifically.
-const REVEAL_DURATION_MS = 5000;
 
 // How long the last remaining connected player sits alone before this
 // client leaves the room on its own and heads back to the room list —
@@ -324,8 +315,8 @@ function floodFill(ctx: CanvasRenderingContext2D, fill: Extract<DrawAction, { ki
 interface CanvasBoardProps {
   isDrawer: boolean;
   /** Owned by GameBoard — the toolbar renders inside this component now
-      (a floating popover over the canvas, see below), so both need the
-      same color/tool/width state and the toolbar's own callbacks. */
+      (permanently docked to the canvas's own edge, see below), so both
+      need the same color/tool/width state and the toolbar's own callbacks. */
   color: string;
   onColorChange: (color: string) => void;
   tool: CanvasTool;
@@ -340,17 +331,16 @@ interface CanvasBoardProps {
 
 /**
  * The canvas card: the drawable canvas with the countdown bar built into
- * its bottom, plus (for the drawer) the tool picker itself — a single
- * round toggle button in the canvas's corner that expands into the full
- * CanvasToolbar popover, and collapses again the moment a tool/size/color
- * is picked. Not a permanent sibling column anymore (gartic.io's own
- * toolbar sits on the page background beside the canvas, but a
- * click-to-expand picker keeps the canvas itself as the one thing that
- * has to stay a constant, predictable size regardless of drawer/guesser
- * state — see GameBoard, whose players column no longer has to shrink to
- * make room for a toolbar column). The word/status pill is still pinned
- * to the top of the chat panel, not floating over the canvas either —
- * see TurnStatusHeader.
+ * its bottom, plus (for the drawer) the tool picker itself — permanently
+ * docked to the canvas's own right edge, always visible the instant it's
+ * your turn, no toggle/close step in the way. Not a permanent sibling
+ * COLUMN, though (gartic.io's own toolbar sits on the page background
+ * beside the canvas) — it's still an overlay on top of the canvas itself,
+ * which is what keeps the canvas the one thing that has to stay a
+ * constant, predictable size regardless of drawer/guesser state (see
+ * GameBoard, whose players column doesn't shrink to make room for it).
+ * The word/status pill is still pinned to the top of the chat panel, not
+ * floating over the canvas either — see TurnStatusHeader.
  */
 export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange, width, onWidthChange, onClear, onUndo, onRedo, canUndo }: CanvasBoardProps) {
   const { playerId } = useSocket();
@@ -359,35 +349,6 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
   const pendingPoints = useRef<StrokePoint[]>([]);
   const isPointerDown = useRef(false);
   const flushTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Which turn (by number, or "ended" for the post-turn gap, or null for
-  // no turn at all) the announcement below was LAST computed for — used
-  // only to notice when that's changed, so the fade timer can reset for
-  // the new one. Comparing this during render (below) rather than
-  // resetting it from inside a useEffect is the React-recommended way to
-  // "adjust state when a prop/derived value changes": a plain setState
-  // call during render is idempotent here (the comparison it's guarded
-  // by becomes false the instant it runs), so it costs one extra render
-  // pass, not a loop — an effect doing the same reset would be run a
-  // whole frame later, and calling setState synchronously in an effect's
-  // body (rather than in a callback responding to something external,
-  // like the timer below) is exactly the pattern React's own lint rule
-  // for this flags as unnecessary indirection.
-  const turnKey = state.currentTurn?.turnNumber ?? (state.lastTurnResult ? "ended" : null);
-  const [lastTurnKey, setLastTurnKey] = useState(turnKey);
-  const [newTurnMessageFaded, setNewTurnMessageFaded] = useState(false);
-  if (turnKey !== lastTurnKey) {
-    setLastTurnKey(turnKey);
-    setNewTurnMessageFaded(false);
-  }
-
-  // The timer itself IS a genuine side effect (subscribing to something
-  // external — real elapsed time — and reacting when it fires), unlike
-  // the reset above, so this is exactly what a useEffect is for.
-  useEffect(() => {
-    if (!state.currentTurn) return;
-    const timer = setTimeout(() => setNewTurnMessageFaded(true), REVEAL_DURATION_MS);
-    return () => clearTimeout(timer);
-  }, [state.currentTurn]);
 
   // Whether a game has actually started at some point (a turn is running,
   // one just ended, a drawer's mid-word-choice, or a turn was just
@@ -434,35 +395,20 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
 
   // Whether the reveal window (the first REVEAL_DURATION_MS of a turn)
   // is still active — the drawer can't actually draw yet during this,
-  // see canDraw below. There's nothing to gate for guessers (they were
-  // never able to draw), so this doubles as "is there a reveal to show"
-  // regardless of who's looking at it.
-  const revealActive = state.currentTurn !== null && !newTurnMessageFaded;
-  const canDraw = isDrawer && !revealActive;
+  // Drawing is allowed the instant a turn starts — no pre-draw reveal
+  // pause anymore (see game.service.ts's chooseWord: turnEndsAt no
+  // longer reserves a reveal window either). The drawer already knows
+  // their word, they just picked it themselves in the word-choice
+  // overlay; a guesser was never able to draw regardless.
+  const canDraw = isDrawer;
 
   // A message announced directly on the canvas itself — not just in the
-  // chat header (TurnStatusHeader), and not a one-time modal anymore
-  // either (that used to be where the drawer's own word was revealed —
-  // now it's right here instead, for the same REVEAL_DURATION_MS the
-  // drawer is blocked from drawing) — for the two moments the canvas
-  // otherwise just sits there frozen with zero context: the instant
-  // your turn ends (persists until the next turn actually starts —
-  // there's no "who's next" to show yet, so it just says the turn's
-  // over), and the reveal at the start of a new one.
+  // chat header (TurnStatusHeader) — for the one moment it otherwise
+  // just sits there frozen with zero context: the instant your turn
+  // ends (persists until the next turn actually starts — there's no
+  // "who's next" to show yet, so it just says the turn's over).
   let transitionMessage: string | null = null;
-  let isWordReveal = false;
-  if (revealActive && state.currentTurn) {
-    if (isDrawer) {
-      isWordReveal = true;
-      // Briefly null the instant TURN_STARTED arrives, before the
-      // separate YOUR_WORD event catches up (see room-session.type.ts) —
-      // rather than flash a blank card for that one frame, this just
-      // shows nothing until the word's actually in hand.
-      transitionMessage = state.yourWord;
-    } else {
-      transitionMessage = `${state.currentTurn.drawerName}'s turn! (${state.currentTurn.wordLength} letters)`;
-    }
-  } else if (!state.currentTurn && state.lastTurnResult) {
+  if (!state.currentTurn && state.lastTurnResult) {
     transitionMessage = state.lastTurnResult.drawerId === playerId ? "Your turn is over!" : "Turn over!";
   }
   // The turn ended early because every guesser got it, not because the
@@ -504,13 +450,6 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
   const wordChoiceSecondsLeft = useCountdown(state.wordChoicePending?.wordChoiceEndsAt ?? null);
   const wordChoiceFraction = useCountdownFraction(state.wordChoicePending?.wordChoiceEndsAt ?? null, WORD_CHOICE_DURATION_MS);
 
-  // Whether the tool-picker popover is open — closed by default, and
-  // closed again automatically the moment a tool/size/color is actually
-  // picked (see the handle*Select wrappers below), so it never lingers
-  // over the drawing after its job is done. Undo/redo/clear deliberately
-  // do NOT close it — those are one-off actions you might repeat (undo a
-  // few strokes back), not a "pick and get out of the way" choice.
-  const [toolbarOpen, setToolbarOpen] = useState(false);
   // The anchor point (one corner of the bounding box, for both square
   // and circle now — see circleOutlinePoints) recorded on pointerdown
   // for a shape tool — only a ref since it doesn't need to trigger a
@@ -637,21 +576,6 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
     return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
   }
 
-  // Pick-and-close wrappers for the popover — see the `toolbarOpen` comment
-  // above for why undo/redo/clear don't get the same treatment.
-  function handleToolSelect(t: CanvasTool) {
-    onToolChange(t);
-    setToolbarOpen(false);
-  }
-  function handleColorSelect(c: string) {
-    onColorChange(c);
-    setToolbarOpen(false);
-  }
-  function handleWidthSelect(w: number) {
-    onWidthChange(w);
-    setToolbarOpen(false);
-  }
-
   // A filled shape is two separate wire actions (an outline stroke, then
   // a fill — see fillMatchesOutline) even though it's one thing to draw
   // and, from the drawer's perspective, one thing to undo. The server's
@@ -703,10 +627,6 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
   }
 
   function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
-    // Not just isDrawer — canDraw also blocks the drawer themselves for
-    // the first REVEAL_DURATION_MS of their own turn, while their word
-    // is up on the canvas (see the revealActive/canDraw derivation
-    // above). Guessers were never able to draw either way.
     if (!canDraw) return;
 
     if (tool === "fill") {
@@ -844,12 +764,6 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
   // (isSoleSurvivor requires gameStarted), so no need to render it.
   if (!gameStarted) return <PreGameCanvasCard />;
 
-  // What the closed FAB shows — the currently selected tool's own icon,
-  // so it stays informative even collapsed instead of a generic
-  // "toolbox" glyph. Falls back to the pen icon defensively; every real
-  // CanvasTool value has a matching entry in TOOL_BUTTONS.
-  const CurrentToolIcon = TOOL_BUTTONS.find((t) => t.tool === tool)?.icon ?? Paintbrush;
-
   return (
     // Full-bleed and width-driven, on purpose — GameBoard's canvas+chat
     // column doesn't force this into an arbitrary fixed-height box
@@ -861,9 +775,9 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
     // "card" either — the canvas's own border+shadow is the only visible
     // boundary here.
     <div className="flex w-full flex-col gap-2">
-      {/* `relative` here (not on the outer flex-col) so the FAB/popover
-          below anchor to the canvas's own corner specifically, not to the
-          canvas+progress-bar pair as a whole. */}
+      {/* `relative` here (not on the outer flex-col) so the toolbar/
+          overlays below anchor to the canvas itself specifically, not to
+          the canvas+progress-bar pair as a whole. */}
       <div className="relative">
         {/* The pointer-coordinate scale math in getRelativePoint reads the
             canvas's actual rendered rect, so it stays correct regardless of
@@ -883,22 +797,14 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
           onPointerLeave={handlePointerUp}
         />
 
-        {/* The canvas's own announcement — see the revealActive/
-            transitionMessage derivation above for exactly when this
-            shows and for how long. `pointer-events-none` isn't what's
-            actually stopping the drawer from drawing during the reveal
-            (canDraw does that, at the pointer-handler level, regardless
-            of what's visually on top) — it's here so a click during the
-            "Turn over!"/"X's turn!" states, where drawing is correctly
-            blocked anyway, doesn't feel like it's hitting a wall. */}
+        {/* The canvas's own announcement — see the transitionMessage
+            derivation above for exactly when this shows and for how
+            long. `pointer-events-none` is here so a click during the
+            "Turn over!" state, where drawing is correctly blocked
+            anyway, doesn't feel like it's hitting a wall. */}
         {transitionMessage && (
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-play-ink/50">
-            {isWordReveal ? (
-              <div className="flex flex-col items-center gap-1 rounded-2xl border-[3px] border-play-ink bg-white px-8 py-5 text-center shadow-[4px_4px_0_var(--color-play-ink)]">
-                <p className="font-play-display text-xs font-bold tracking-wide text-play-ink/50 uppercase">Your word</p>
-                <p className="font-play-display text-3xl font-bold break-all text-play-ink">{transitionMessage}</p>
-              </div>
-            ) : roundWonCelebration && lastTurnResult ? (
+            {roundWonCelebration && lastTurnResult ? (
               // Someone reached the winning score — the ONE case with the
               // full leaderboard treatment, up for the much longer
               // ROUND_TRANSITION_DELAY_MS pause (see nextTurnAt) before
@@ -1006,77 +912,27 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
 
         {soleSurvivorOverlay}
 
+        {/* Always mounted now, flush against the canvas's own right, top,
+            and bottom edges — no toggle FAB/popover, no close button, no
+            open/closed state to track. It reads as a permanent part of
+            the canvas's own frame (see CanvasToolbar's rounding/border,
+            matched to the canvas's for exactly that reason) rather than
+            something that has to be summoned and dismissed. */}
         {canDraw && (
-          <>
-            {/* A click anywhere else on the canvas while the strip's open
-                dismisses it instead of drawing — sits above the canvas
-                but below the strip (z-10 vs z-20). Only mounted while
-                open, so it never intercepts normal drawing clicks. This
-                is the ONLY way to close the strip now — no close button
-                — which is exactly why it has to cover the rest of the
-                canvas: closing has to stay reachable no matter how wide
-                the edge-to-edge strip itself ends up being. */}
-            {toolbarOpen && (
-              <button
-                type="button"
-                aria-label="Close tool picker"
-                onClick={() => setToolbarOpen(false)}
-                className="absolute inset-0 z-10 cursor-default rounded-2xl bg-play-ink/10"
-              />
-            )}
-
-            {/* The strip itself — flush against the canvas's own right,
-                top, and bottom edges (no margin/inset, unlike the FAB),
-                so it reads as part of the canvas's own frame rather than
-                a card floating over it (see CanvasToolbar's rounding/
-                border, matched to the canvas's for exactly that reason).
-                Full height of the canvas either way — CanvasToolbar
-                handles its own internal scrolling once it has this real,
-                bounded height to work with (see its own comment for why).
-                Only mounted while open — closing is instant, not
-                animated, to keep this simple. */}
-            {toolbarOpen && (
-              <div className="absolute inset-y-0 right-0 z-20">
-                <CanvasToolbar
-                  color={color}
-                  onColorChange={handleColorSelect}
-                  tool={tool}
-                  onToolChange={handleToolSelect}
-                  width={width}
-                  onWidthChange={handleWidthSelect}
-                  onClear={onClear}
-                  onUndo={handleUndo}
-                  onRedo={handleRedo}
-                  canUndo={canUndo}
-                />
-              </div>
-            )}
-
-            {/* The toggle — shows the currently selected tool's own icon
-                (so it's informative at a glance) plus a small swatch
-                badge for the current color. Hidden entirely while the
-                strip is open (there's no close button — see above —
-                so nothing else needs to make room for it either). */}
-            {!toolbarOpen && (
-              <button
-                type="button"
-                aria-label="Open tool picker"
-                aria-expanded={false}
-                onClick={() => setToolbarOpen(true)}
-                style={pressStyle(3)}
-                className={cn(
-                  "absolute top-3 right-3 z-20 flex size-12 items-center justify-center rounded-full border-[3px] border-play-ink bg-white text-play-ink shadow-[3px_3px_0_var(--color-play-ink)]",
-                  PRESS_CLASS,
-                )}
-              >
-                <CurrentToolIcon className="size-5" />
-                <span
-                  className="absolute -bottom-1 -left-1 size-4 rounded-full border-2 border-play-ink"
-                  style={{ backgroundColor: color }}
-                />
-              </button>
-            )}
-          </>
+          <div className="absolute inset-y-0 right-0 z-20">
+            <CanvasToolbar
+              color={color}
+              onColorChange={onColorChange}
+              tool={tool}
+              onToolChange={onToolChange}
+              width={width}
+              onWidthChange={onWidthChange}
+              onClear={onClear}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              canUndo={canUndo}
+            />
+          </div>
         )}
       </div>
 
@@ -1085,7 +941,7 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
           separate row elsewhere on the page. */}
       {state.currentTurn && (
         <div className="shrink-0 px-1">
-          <TurnProgressBar turn={state.currentTurn} revealActive={revealActive} />
+          <TurnProgressBar turn={state.currentTurn} />
         </div>
       )}
     </div>

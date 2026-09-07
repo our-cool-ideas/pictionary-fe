@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { joinRoomFormSchema, type JoinRoomFormValues } from "@/modules/room/validation/join-room.validation";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { usePlayerIdentity } from "@/hooks/use-player-identity";
+import { AvatarPicker } from "@/modules/player/components/avatar-picker";
 import { PRESS_CLASS, cn, pressStyle } from "@/lib/utils";
 
 export function JoinRoomForm({ code }: { code: string }) {
@@ -38,7 +39,13 @@ export function JoinRoomForm({ code }: { code: string }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-play-sand p-5 font-play-body">
-      <div className="flex w-full max-w-[380px] flex-col gap-5 rounded-[28px] border-[3px] border-play-ink bg-white p-7 shadow-[8px_8px_0_var(--color-play-ink)]">
+      {/* max-w-[420px] to match SignInPage's card exactly, not the old
+          380px — AvatarPicker's carousel (4×64px circles + arrows +
+          gaps) needs that same width to lay out cleanly; at 380px there
+          just wasn't enough room for the grid, so the fixed-size avatar
+          circles overlapped their own cells instead of wrapping or
+          shrinking. */}
+      <div className="flex w-full max-w-[420px] flex-col gap-5 rounded-[28px] border-[3px] border-play-ink bg-white p-7 shadow-[8px_8px_0_var(--color-play-ink)]">
         <div className="flex flex-col items-center gap-1.5 text-center">
           <svg width="34" height="34" viewBox="0 0 38 38" fill="none" aria-hidden="true">
             <path d="M27 6 L32 11 L16 27 L9 29 L11 22 Z" fill="var(--color-play-orange)" stroke="var(--color-play-ink)" strokeWidth="2.5" strokeLinejoin="round" />
@@ -46,10 +53,12 @@ export function JoinRoomForm({ code }: { code: string }) {
             <circle cx="30" cy="8" r="3.4" fill="var(--color-play-yellow)" stroke="var(--color-play-ink)" strokeWidth="2" />
           </svg>
           <span className="font-play-display text-2xl font-bold text-play-ink">Join room {code}</span>
-          <span className="font-play-display text-[13px] font-semibold text-play-ink/65">Pick a name to join this room.</span>
+          <span className="font-play-display text-[13px] font-semibold text-play-ink/65">Pick a name and avatar to join this room.</span>
         </div>
 
         <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+          <AvatarPicker />
+
           <div className="flex flex-col gap-2">
             <label htmlFor="join-name" className="font-play-display text-xs font-semibold tracking-wide text-play-ink uppercase">
               Your Name

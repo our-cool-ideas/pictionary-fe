@@ -5,18 +5,21 @@ import { useRoomSession } from "@/modules/room/context/use-room-session";
 
 /**
  * A dark bar pinned to the top of the chat panel (see ChatPanel) — the
- * word/blanks and who's drawing. Persistent for the whole turn, unlike
- * the reveal itself (which lives on the canvas now, briefly, at the
- * start of each turn — see CanvasBoard's revealActive/transitionMessage):
- * shows the drawer their own word, everyone else the masked blanks
- * (never the real word — mirrors the backend's word-privacy split), and
- * the previous word for a beat once a turn's just ended. This is also
- * the only remaining home for "who's drawing" now that the room-metadata
- * card is gone — self-contained, no props, so ChatPanel can render it
- * unconditionally and let it decide whether there's anything to show.
- * `rounded-t-2xl` matches the chat card's own corner radius since this
- * sits flush at its top, not floating separately over the canvas the way
- * it used to.
+ * word/blanks and who's drawing, persistent for the whole turn. This is
+ * the ONLY place the word/blanks show at all now — there's no separate
+ * reveal overlay on the canvas anymore (the drawer already knows the
+ * word, they just chose it themselves in the word-choice picker; a
+ * guesser only ever gets the masked blanks either way, so a one-time
+ * "X's turn! (N letters)" flash on the canvas was pure redundancy with
+ * this bar). Shows the drawer their own word, everyone else the masked
+ * blanks (never the real word — mirrors the backend's word-privacy
+ * split), and the previous word for a beat once a turn's just ended.
+ * This is also the only remaining home for "who's drawing" now that the
+ * room-metadata card is gone — self-contained, no props, so ChatPanel
+ * can render it unconditionally and let it decide whether there's
+ * anything to show. `rounded-t-2xl` matches the chat card's own corner
+ * radius since this sits flush at its top, not floating separately over
+ * the canvas the way it used to.
  */
 export function TurnStatusHeader() {
   const { playerId } = useSocket();

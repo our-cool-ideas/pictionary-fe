@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Globe2, Loader2, Lock, Shapes, Sparkles } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Globe2,
+  Loader2,
+  Lock,
+  Shapes,
+  Sparkles,
+} from "lucide-react";
 import { usePublicCategories } from "@/modules/player/hooks/use-public-categories";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
 import { usePlayerIdentity } from "@/hooks/use-player-identity";
@@ -21,6 +29,19 @@ const DEFAULT_POINTS = 100;
 // tooltip doesn't scale or read well once there are more than a handful.
 const CATEGORY_PAGE_SIZE = 4;
 
+// Shared selected/unselected treatment for every toggle-style pick in
+// this strip (Public/Private, category cards) — orange+lift+shadow for
+// the active choice (this app's usual "this is the one that's on" CTA
+// color, see the Start/Create buttons elsewhere), solid yellow for
+// everything not picked, rather than the old translucent-white-on-blue
+// look, which read as more "disabled" than "an alternative you could
+// pick instead."
+function toggleButtonClass(selected: boolean): string {
+  return selected
+    ? "-translate-y-0.5 border-[2.5px] border-play-ink bg-play-orange text-white shadow-[2.5px_2.5px_0_var(--color-play-ink)]"
+    : "border-[2.5px] border-play-ink bg-white text-play-ink";
+}
+
 /** The "start a room" bar at the top of the Rooms page. */
 export function QuickCreateStrip() {
   const router = useRouter();
@@ -31,7 +52,10 @@ export function QuickCreateStrip() {
   } = useRoomSession();
 
   const categories = categoriesData?.categories ?? [];
-  const categoryPageCount = Math.max(1, Math.ceil(categories.length / CATEGORY_PAGE_SIZE));
+  const categoryPageCount = Math.max(
+    1,
+    Math.ceil(categories.length / CATEGORY_PAGE_SIZE),
+  );
   const [categoryPage, setCategoryPage] = useState(0);
   // Nullable, explicit-choice-only state — the actual selected category is
   // derived below, so there's no "sync state to the async categories
@@ -45,9 +69,17 @@ export function QuickCreateStrip() {
   // to slide FROM and TO; swapping a single slice's contents can only
   // ever hard-cut, never slide.
   const categoryPages: PublicCategory[][] = [];
-  for (let i = 0; i < categoryPageCount; i++) categoryPages.push(categories.slice(i * CATEGORY_PAGE_SIZE, i * CATEGORY_PAGE_SIZE + CATEGORY_PAGE_SIZE));
+  for (let i = 0; i < categoryPageCount; i++)
+    categoryPages.push(
+      categories.slice(
+        i * CATEGORY_PAGE_SIZE,
+        i * CATEGORY_PAGE_SIZE + CATEGORY_PAGE_SIZE,
+      ),
+    );
 
-  const [visibility, setVisibility] = useState<ROOM_VISIBILITY>(ROOM_VISIBILITY.PUBLIC);
+  const [visibility, setVisibility] = useState<ROOM_VISIBILITY>(
+    ROOM_VISIBILITY.PUBLIC,
+  );
   const [targetScore, setTargetScore] = useState<number>(DEFAULT_POINTS);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +88,13 @@ export function QuickCreateStrip() {
     if (!categoryId) return;
     setError(null);
     setCreating(true);
-    const result = await createRoom({ name: playerName.trim(), categoryId, visibility, avatarId, targetScore });
+    const result = await createRoom({
+      name: playerName.trim(),
+      categoryId,
+      visibility,
+      avatarId,
+      targetScore,
+    });
     setCreating(false);
     if (!result.ok || !result.code) {
       setError(result.message);
@@ -81,7 +119,9 @@ export function QuickCreateStrip() {
               a round runs to. */}
           <div className="flex shrink-0 items-center gap-2">
             <Sparkles className="size-[18px] text-white" strokeWidth={2.2} />
-            <span className="font-play-display text-[15px] font-bold whitespace-nowrap text-white">Start a Room</span>
+            <span className="font-play-display text-[15px] font-bold whitespace-nowrap text-white">
+              Start a Room
+            </span>
           </div>
 
           <div className="hidden h-8 w-0.5 shrink-0 bg-white/30 sm:block" />
@@ -94,9 +134,7 @@ export function QuickCreateStrip() {
                 onClick={() => setVisibility(ROOM_VISIBILITY.PUBLIC)}
                 className={cn(
                   "flex items-center gap-1.5 rounded-xl px-3 py-2 font-play-display text-xs font-bold transition-transform",
-                  visibility === ROOM_VISIBILITY.PUBLIC
-                    ? "-translate-y-0.5 border-[2.5px] border-play-ink bg-white text-play-ink shadow-[2.5px_2.5px_0_var(--color-play-ink)]"
-                    : "border-[2.5px] border-white/50 bg-white/20 text-white",
+                  toggleButtonClass(visibility === ROOM_VISIBILITY.PUBLIC),
                 )}
               >
                 <Globe2 className="size-4" strokeWidth={2.2} />
@@ -108,9 +146,7 @@ export function QuickCreateStrip() {
                 onClick={() => setVisibility(ROOM_VISIBILITY.PRIVATE)}
                 className={cn(
                   "flex items-center gap-1.5 rounded-xl px-3 py-2 font-play-display text-xs font-bold transition-transform",
-                  visibility === ROOM_VISIBILITY.PRIVATE
-                    ? "-translate-y-0.5 border-[2.5px] border-play-ink bg-white text-play-ink shadow-[2.5px_2.5px_0_var(--color-play-ink)]"
-                    : "border-[2.5px] border-white/50 bg-white/20 text-white",
+                  toggleButtonClass(visibility === ROOM_VISIBILITY.PRIVATE),
                 )}
               >
                 <Lock className="size-4" strokeWidth={2.2} />
@@ -121,11 +157,13 @@ export function QuickCreateStrip() {
             <div className="hidden h-8 w-0.5 shrink-0 bg-white/30 sm:block" />
 
             <label className="flex shrink-0 items-center gap-1.5">
-              <span className="font-play-display text-[11px] font-bold tracking-wide text-white/70 uppercase">Round ends at</span>
+              <span className="font-play-display text-[11px] font-bold tracking-wide text-white/70 uppercase">
+                Round ends at
+              </span>
               <select
                 value={targetScore}
                 onChange={(e) => setTargetScore(Number(e.target.value))}
-                className="rounded-xl border-[2.5px] border-play-ink bg-white px-2.5 py-2 font-play-display text-xs font-bold text-play-ink outline-none"
+                className="rounded-xl border-[2.5px] border-play-ink bg-play-orange px-2.5 py-2 font-play-display text-xs font-bold text-white outline-none"
               >
                 {POINT_OPTIONS.map((points) => (
                   <option key={points} value={points}>
@@ -142,7 +180,9 @@ export function QuickCreateStrip() {
               see its own comments for why a plain slice-swap can't slide). */}
           <div className="flex shrink-0 items-center gap-2">
             <Shapes className="size-[18px] text-white" strokeWidth={2.2} />
-            <span className="font-play-display text-[15px] font-bold whitespace-nowrap text-white">Choose a Category</span>
+            <span className="font-play-display text-[15px] font-bold whitespace-nowrap text-white">
+              Choose a Category
+            </span>
           </div>
 
           <div className="hidden h-8 w-0.5 shrink-0 bg-white/30 sm:block" />
@@ -169,10 +209,17 @@ export function QuickCreateStrip() {
             <div className="min-w-0 flex-1 overflow-hidden pt-1">
               <div
                 className="flex transition-transform duration-[450ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
-                style={{ width: `${categoryPageCount * 100}%`, transform: `translateX(-${(categoryPage * 100) / categoryPageCount}%)` }}
+                style={{
+                  width: `${categoryPageCount * 100}%`,
+                  transform: `translateX(-${(categoryPage * 100) / categoryPageCount}%)`,
+                }}
               >
                 {categoryPages.map((items, i) => (
-                  <div key={i} className="grid shrink-0 grid-cols-4 gap-2" style={{ width: `${100 / categoryPageCount}%` }}>
+                  <div
+                    key={i}
+                    className="grid shrink-0 grid-cols-4 gap-2"
+                    style={{ width: `${100 / categoryPageCount}%` }}
+                  >
                     {items.map((category) => {
                       const selected = category.id === categoryId;
                       return (
@@ -184,13 +231,24 @@ export function QuickCreateStrip() {
                           onClick={() => setChosenCategoryId(category.id)}
                           className={cn(
                             "flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-3 transition-transform",
-                            selected
-                              ? "-translate-y-0.5 border-[2.5px] border-play-ink bg-white shadow-[3px_3px_0_var(--color-play-ink)]"
-                              : "border-[2.5px] border-white/50 bg-white/20",
+                            toggleButtonClass(selected),
                           )}
                         >
-                          <CategoryIcon name={category.name} className={cn("size-6", selected ? "text-play-ink" : "text-white")} />
-                          <span className={cn("max-w-full truncate font-play-display text-[11px] font-bold", selected ? "text-play-ink" : "text-white")}>{category.name}</span>
+                          <CategoryIcon
+                            name={category.name}
+                            className={cn(
+                              "size-6",
+                              selected ? "text-white" : "text-play-ink",
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              "max-w-full truncate font-play-display text-[11px] font-bold",
+                              selected ? "text-white" : "text-play-ink",
+                            )}
+                          >
+                            {category.name}
+                          </span>
                         </button>
                       );
                     })}
@@ -219,7 +277,11 @@ export function QuickCreateStrip() {
                 PRESS_CLASS,
               )}
             >
-              {creating ? <Loader2 className="size-4 animate-spin" /> : "Create"}
+              {creating ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Create"
+              )}
             </button>
           </div>
         </div>
@@ -232,13 +294,18 @@ export function QuickCreateStrip() {
                 type="button"
                 aria-label={`Go to category page ${i + 1}`}
                 onClick={() => setCategoryPage(i)}
-                className={cn("size-1.5 rounded-full transition-colors", i === categoryPage ? "bg-white" : "bg-white/30")}
+                className={cn(
+                  "size-1.5 rounded-full transition-colors",
+                  i === categoryPage ? "bg-white" : "bg-white/30",
+                )}
               />
             ))}
           </div>
         )}
       </div>
-      {error && <p className="font-play-body text-xs font-bold text-red-600">{error}</p>}
+      {error && (
+        <p className="font-play-body text-xs font-bold text-red-600">{error}</p>
+      )}
     </div>
   );
 }

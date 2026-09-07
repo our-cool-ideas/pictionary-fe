@@ -72,26 +72,36 @@ export function PreGameCanvasCard() {
         className="flex w-full flex-col items-center justify-center gap-4 rounded-2xl border-[3px] border-play-ink bg-white p-6 text-center shadow-[5px_5px_0_var(--color-play-ink)]"
         style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}
       >
-        <div className="flex items-center gap-3">
+        {/* Stacked now (Start Game on top, Copy room link below) instead
+            of side by side — a normal full-width primary button reads as
+            THE thing to do here, same as Start/Join Room/Create
+            elsewhere in the app, rather than a small circular FAB that
+            didn't match any other CTA's shape. Same disabled condition
+            and starting/loading flow as before, just the plain
+            `disabled:opacity-50` treatment every other CTA button here
+            uses instead of the FAB's own bespoke ink-tinted disabled
+            look. */}
+        <div className="flex w-full max-w-xs flex-col gap-2.5">
           <button
             type="button"
             disabled={!isHost || !canStart || starting}
             onClick={handleStart}
             aria-label="Start game"
-            style={pressStyle(3)}
+            style={pressStyle(4)}
             className={cn(
-              "flex size-16 items-center justify-center rounded-full border-[3px] border-play-ink bg-play-orange text-white shadow-[3px_3px_0_var(--color-play-ink)] transition-opacity disabled:cursor-not-allowed disabled:border-play-ink/25 disabled:bg-play-ink/10 disabled:text-play-ink/30 disabled:shadow-none",
+              "flex w-full items-center justify-center gap-2 rounded-2xl border-[3px] border-play-ink bg-play-orange p-3.5 font-play-display text-lg font-bold text-white shadow-[4px_4px_0_var(--color-play-ink)] disabled:cursor-not-allowed disabled:opacity-50",
               PRESS_CLASS,
             )}
           >
-            {starting ? <Loader2 className="size-6 animate-spin" /> : <Play className="size-6" fill="currentColor" />}
+            {starting ? <Loader2 className="size-5 animate-spin" /> : <Play className="size-5" fill="currentColor" />}
+            Start Game
           </button>
           <button
             type="button"
             onClick={handleCopyLink}
             style={pressStyle(2)}
             className={cn(
-              "flex items-center gap-1.5 rounded-xl border-2 border-play-ink bg-white px-4 py-2.5 font-play-display text-sm font-bold text-play-ink shadow-[2px_2px_0_var(--color-play-ink)]",
+              "flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-play-ink bg-white px-4 py-2.5 font-play-display text-sm font-bold text-play-ink shadow-[2px_2px_0_var(--color-play-ink)]",
               PRESS_CLASS,
             )}
           >

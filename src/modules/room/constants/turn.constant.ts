@@ -21,4 +21,4 @@ export const ROUND_TRANSITION_DELAY_MS = 20_000;
 // deliberately separate from the main turn progress bar (see
 // CanvasBoard's word-choice overlay) since this window never counts
 // against the drawer's actual drawing time.
-export const WORD_CHOICE_DURATION_MS = 6_000;
+export const WORD_CHOICE_DURATION_MS = 10_000;

@@ -14,7 +14,7 @@ interface ChatPanelProps {
 export function ChatPanel({ isDrawer }: ChatPanelProps) {
   const { playerId } = useSocket();
   const {
-    state: { chatMessages, correctGuesserIds },
+    state: { chatMessages, correctGuesserIds, wordChoicePending },
     actions: { sendMessage },
   } = useRoomSession();
   // Once you've guessed the current turn's word, there's nothing left to
@@ -22,7 +22,15 @@ export function ChatPanel({ isDrawer }: ChatPanelProps) {
   // rejects a repeat guesser), this just stops it at the input instead of
   // round-tripping first. Resets every turn (correctGuesserIds does too).
   const hasGuessedCorrectly = playerId !== null && correctGuesserIds.includes(playerId);
-  const inputDisabled = isDrawer || hasGuessedCorrectly;
+  // Nothing to guess yet while a drawer's still picking a word — closed
+  // for everyone (not just the picking drawer, who's already covered by
+  // `isDrawer` being false at this point anyway — see GameBoard's own
+  // isDrawer derivation), same as it's closed for the active drawer
+  // mid-turn. Mirrored server-side (see tryHandleChatAsGuess's
+  // "word-not-chosen" outcome) — this is just the UI-side version so
+  // nobody gets as far as a round trip to find out.
+  const isChoosingWord = wordChoicePending !== null;
+  const inputDisabled = isDrawer || hasGuessedCorrectly || isChoosingWord;
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -104,7 +112,9 @@ export function ChatPanel({ isDrawer }: ChatPanelProps) {
               ? "You can't chat while drawing"
               : hasGuessedCorrectly
                 ? "You already guessed it!"
-                : "Type your guess..."
+                : isChoosingWord
+                  ? "Waiting for a word to be chosen…"
+                  : "Type your guess..."
           }
           maxLength={280}
           disabled={inputDisabled}
