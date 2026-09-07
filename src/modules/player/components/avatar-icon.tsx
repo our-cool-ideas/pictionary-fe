@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AVATAR_ICON } from "@/modules/player/constants/avatar.constant";
+import { RealisticGirlGlasses } from "@/modules/player/components/realistic-girl-glasses";
 
 /**
  * The ten hand-drawn player characters — see avatar.constant.ts for the
@@ -25,9 +26,13 @@ const HAIR = {
   darkBrown: "#3b2a20",
   navy: "#2b2438",
 } as const;
-const IRIS = { blue: "#4a7fc9", hazel: "#8a6a3f", green: "#3f8f5e", gray: "#6b7280", amber: "#c98a2e", brown: "#6b4226", steel: "#7c93a6" } as const;
+const IRIS = { blue: "#4a7fc9", hazel: "#8a6a3f", green: "#3f8f5e", gray: "#6b7280", amber: "#c98a2e", brown: "#6b4226", steel: "#4f5a78" } as const;
 const BROW = { dark: "#3a2a1e", darker: "#2a1e14", blonde: "#7a5a1e" } as const;
 const NOSE_SHADOW = { light: "#d69b73", tan: "#c98456", deep: "#8a4a28" } as const;
+// A dusty rose for a full, filled lip shape — see FullLips — rather than
+// the plain ink-line mouths (NeutralSmile/Smirk/BigSmile) every other
+// character uses. Only GIRL_GLASSES has visible lips like this so far.
+const LIPS = "#d9806f";
 
 function Ears({ skin, wide = false }: { skin: string; wide?: boolean }) {
   const cx = wide ? 3.6 : 3.9;
@@ -156,11 +161,17 @@ function WinkEyes({ iris, cy = 9.7 }: { iris: string; cy?: number }) {
   );
 }
 
-function Glasses({ cy = 9.7, r = 1.3 }: { cy?: number; r?: number }) {
+// `lensFill` defaults to "none" (a plain outline, what every current
+// wearer of this component uses) — GIRL_GLASSES is the one call site
+// that passes a translucent tint instead, matching the reference photo's
+// lightly frosted lenses. Semi-transparent (not opaque) on purpose: the
+// eyes underneath still need to read through it, since Glasses renders
+// after the eyes in the character composition order.
+function Glasses({ cy = 9.7, r = 1.3, lensFill = "none" }: { cy?: number; r?: number; lensFill?: string }) {
   return (
     <>
-      <circle cx="6.9" cy={cy} r={r} fill="none" stroke={INK} strokeWidth="0.62" />
-      <circle cx="11.1" cy={cy} r={r} fill="none" stroke={INK} strokeWidth="0.62" />
+      <circle cx="6.9" cy={cy} r={r} fill={lensFill} stroke={INK} strokeWidth="0.62" />
+      <circle cx="11.1" cy={cy} r={r} fill={lensFill} stroke={INK} strokeWidth="0.62" />
       <path d={`M${8.1} ${cy}L${9.9} ${cy}`} stroke={INK} strokeWidth="0.62" />
     </>
   );
@@ -313,11 +324,16 @@ function SidepartHair({ color, skin }: { color: string; skin: string }) {
 
 // Long, center-parted hair draping past the shoulders (unlike LongHair's
 // shorter side wisps) — the dome has a shallow notch at its peak plus a
-// thin center-part line, and the two side strands run all the way down
-// to y≈17.6, well past the face/shoulders, so they read as "flowing"
-// rather than "framing". That also means they run past where the shirt
-// gets cropped by the zoom transform (see AvatarIcon) — deliberate, same
-// as a real center-part photo where hair falls in front of the shoulders.
+// thin center-part line. Deliberately ASYMMETRIC, matching the reference
+// SVG this character is modeled on (rendered and visually checked, not
+// just eyeballed from a photo this time): the LEFT strand is the big,
+// full one — it bulges outward past the face and runs all the way down
+// to y≈17.8, well past the face/shoulders (past where the shirt gets
+// cropped by the zoom transform too — see AvatarIcon — same as a real
+// center-part photo where hair falls in front of the shoulder). The
+// RIGHT strand is short and tucked in close, stopping around the
+// jaw/collar line instead, so noticeably less hair shows on that side —
+// NOT a mirrored pair of the same path like every other hairstyle here.
 function LongPartedHair({ color }: { color: string }) {
   return (
     <>
@@ -329,9 +345,40 @@ function LongPartedHair({ color }: { color: string }) {
         strokeLinejoin="round"
       />
       <path d="M9 1.6L9 6.1" stroke={INK} strokeWidth="0.28" strokeLinecap="round" />
-      <path d="M4.1 7.4C3.2 10.4 3.1 14.4 4 17.6C4.7 15.8 5 12 4.8 9C4.75 8.4 4.45 7.8 4.1 7.4Z" fill={color} stroke={INK} strokeWidth="0.5" strokeLinejoin="round" />
-      <path d="M13.9 7.4C14.8 10.4 14.9 14.4 14 17.6C13.3 15.8 13 12 13.2 9C13.25 8.4 13.55 7.8 13.9 7.4Z" fill={color} stroke={INK} strokeWidth="0.5" strokeLinejoin="round" />
+      {/* Left — the big, full strand, bulging outward and running well past the shoulder. */}
+      <path
+        d="M4.1 7.2C2.6 8.2 2 10.4 2.3 12.8C2.5 14.9 3.2 16.6 3.9 17.8C3.7 15 4.1 11 4.8 8.5C4.8 8 4.5 7.5 4.1 7.2Z"
+        fill={color}
+        stroke={INK}
+        strokeWidth="0.5"
+        strokeLinejoin="round"
+      />
+      {/* Right — short, tucked close to the jaw. */}
+      <path
+        d="M13.9 7.4C14.6 8.4 14.8 9.8 14.5 11.2C14.3 11.9 13.9 12.2 13.6 11.8C13.4 10.8 13.3 9.5 13.4 8.4C13.5 7.9 13.7 7.6 13.9 7.4Z"
+        fill={color}
+        stroke={INK}
+        strokeWidth="0.5"
+        strokeLinejoin="round"
+      />
     </>
+  );
+}
+
+// A filled, colored lip shape — a soft cupid's-bow top edge and a
+// fuller, rounded bottom lip — rather than the plain ink-line mouths
+// (NeutralSmile/Smirk/BigSmile) every other character uses. Matches the
+// reference photo's visible, distinctly-colored lips instead of just a
+// stroke.
+function FullLips() {
+  return (
+    <path
+      d="M7.35 12.05Q8.2 11.7 9 11.95Q9.8 11.7 10.65 12.05Q9.9 12.65 9 12.65Q8.1 12.65 7.35 12.05Z"
+      fill={LIPS}
+      stroke={INK}
+      strokeWidth="0.28"
+      strokeLinejoin="round"
+    />
   );
 }
 
@@ -423,6 +470,12 @@ const CHARACTERS: Record<AVATAR_ICON, (shirtColor: string) => ReactNode> = {
       <Smirk />
     </>
   ),
+  // Never actually rendered — AvatarIcon special-cases GIRL_GLASSES to
+  // RealisticGirlGlasses instead (see its own doc comment for why) before
+  // this CHARACTERS lookup is ever reached. Kept only because
+  // Record<AVATAR_ICON, ...> requires every enum value to have an entry;
+  // this is what the flat version looked like before that switch, left
+  // here as a reference rather than deleted outright.
   [AVATAR_ICON.GIRL_GLASSES]: (shirtColor) => (
     <>
       <Ears skin={SKIN.light} />
@@ -432,9 +485,9 @@ const CHARACTERS: Record<AVATAR_ICON, (shirtColor: string) => ReactNode> = {
       <LongPartedHair color={HAIR.black} />
       <Eyebrows girl color={BROW.darker} cy={8.8} />
       <BigEyes iris={IRIS.steel} />
-      <Glasses cy={9.65} r={1.45} />
+      <Glasses cy={9.65} r={1.45} lensFill="#c9d8e855" />
       <Nose shadow={NOSE_SHADOW.light} />
-      <NeutralSmile />
+      <FullLips />
     </>
   ),
   [AVATAR_ICON.BOY_SHORT]: (shirtColor) => (
@@ -530,8 +583,16 @@ interface AvatarIconProps {
 const ZOOM_SCALE = 1.25;
 const ZOOM_TRANSFORM = `translate(${(9 * (1 - ZOOM_SCALE)).toFixed(2)},0) scale(${ZOOM_SCALE})`;
 
-/** One of the ten hand-drawn player characters — see avatar.constant.ts. Flat fills + ink outlines, never emoji. */
+/**
+ * One of the eleven hand-drawn player characters — see avatar.constant.ts.
+ * Flat fills + ink outlines, never emoji — except GIRL_GLASSES, which is a
+ * direct port of a realistic reference illustration instead (see
+ * RealisticGirlGlasses's own doc comment for why it's a special case
+ * rather than living in the CHARACTERS record like everyone else).
+ */
 export function AvatarIcon({ icon, color = "#2F6FEB", size = 18, className }: AvatarIconProps) {
+  if (icon === AVATAR_ICON.GIRL_GLASSES) return <RealisticGirlGlasses size={size} className={className} />;
+
   return (
     <svg width={size} height={size} viewBox="0 0 18 18" className={className} aria-hidden="true">
       <g transform={ZOOM_TRANSFORM}>{CHARACTERS[icon](color)}</g>
