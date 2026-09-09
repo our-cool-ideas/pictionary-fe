@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { Send, Target } from "lucide-react";
 import { useSocket } from "@/hooks/use-socket";
 import { useRoomSession } from "@/modules/room/context/use-room-session";
-import { TurnStatusHeader } from "@/modules/room/components/turn-status-header";
 import { PRESS_CLASS, cn, pressStyle } from "@/lib/utils";
 
 interface ChatPanelProps {
@@ -33,6 +32,12 @@ export function ChatPanel({ isDrawer }: ChatPanelProps) {
   const inputDisabled = isDrawer || hasGuessedCorrectly || isChoosingWord;
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  // The server can reject a message for reasons the client can't always
+  // pre-empt (profanity, repeating the same message too many times,
+  // plain rate-limiting) — this used to just vanish with zero
+  // explanation: the draft was optimistically cleared before the result
+  // even came back, and the result itself was discarded either way.
+  const [sendError, setSendError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,17 +53,18 @@ export function ChatPanel({ isDrawer }: ChatPanelProps) {
     const trimmed = draft.trim();
     if (!trimmed || sending) return;
     setSending(true);
-    setDraft("");
-    await sendMessage(trimmed);
+    setSendError(null);
+    const result = await sendMessage(trimmed);
+    // Only cleared on success now — a rejected message leaves the draft
+    // in place (with the reason shown below) so it can be edited and
+    // retried instead of just disappearing.
+    if (result.ok) setDraft("");
+    else setSendError(result.message);
     setSending(false);
   }
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border-[3px] border-play-ink bg-white font-play-body shadow-[5px_5px_0_var(--color-play-ink)]">
-      {/* Pinned at the top of this card, not floating over the canvas
-          anymore — see TurnStatusHeader. Renders nothing (null) pre-game
-          and in any other state with no turn/last-result to show. */}
-      <TurnStatusHeader />
       <div ref={listRef} className="flex-1 overflow-y-auto p-3">
         {chatMessages.length === 0 && (
           <p className="text-sm font-bold text-play-ink/40">
@@ -100,13 +106,20 @@ export function ChatPanel({ isDrawer }: ChatPanelProps) {
           )}
         </ul>
       </div>
+      {/* No border of its own — the form right below already has the one
+          top border marking where the scrollable message list ends, and
+          this appearing/disappearing shouldn't add a second line next to it. */}
+      {sendError && <p className="shrink-0 bg-red-50 px-2.5 pt-2 text-xs font-bold text-red-600">{sendError}</p>}
       <form
         className="flex gap-2 border-t-[3px] border-play-ink p-2.5"
         onSubmit={handleSubmit}
       >
         <input
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setSendError(null);
+          }}
           placeholder={
             isDrawer
               ? "You can't chat while drawing"

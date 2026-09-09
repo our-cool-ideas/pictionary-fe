@@ -12,6 +12,14 @@ export function roomSessionReducer(state: RoomSessionState, action: RoomSessionA
     case "SET_ROOM":
       return { ...state, room: action.room };
 
+    // A separate action from SET_ROOM (even though it also carries a fresh
+    // room) specifically so it can drop its own system-chat announcement —
+    // the old host disconnecting/leaving/being kicked already gets its own
+    // message from whichever of those triggered it; this is purely "and by
+    // the way, X is the new host now."
+    case "HOST_CHANGED":
+      return { ...state, room: action.room, chatMessages: [...state.chatMessages, systemMessage(`${action.newHostName} is now the host!`)] };
+
     case "CHAT_MESSAGE":
       return { ...state, chatMessages: [...state.chatMessages, action.message] };
 
@@ -59,6 +67,7 @@ export function roomSessionReducer(state: RoomSessionState, action: RoomSessionA
         currentTurn: action.payload,
         yourWord: null,
         correctGuesserIds: action.payload.correctGuesserIds,
+        liveScores: action.payload.scores,
         lastTurnResult: null,
         wordChoicePending: null,
         myWordChoices: null,
@@ -76,7 +85,14 @@ export function roomSessionReducer(state: RoomSessionState, action: RoomSessionA
         correctGuesserIds: [...state.correctGuesserIds, action.payload.playerId],
         // Points land the instant the guess is scored, not just at the
         // end of the turn — the payload already carries both updated
-        // totals, so merge them straight into the live scoreboard.
+        // totals, so merge them straight into the live scoreboard (both
+        // here in liveScores, the one Scoreboard actually reads from,
+        // and in currentTurn.scores for anything still keying off that).
+        liveScores: {
+          ...state.liveScores,
+          [action.payload.playerId]: action.payload.guesserScore,
+          [action.payload.drawerId]: action.payload.drawerScore,
+        },
         currentTurn: state.currentTurn && {
           ...state.currentTurn,
           scores: {
@@ -104,6 +120,7 @@ export function roomSessionReducer(state: RoomSessionState, action: RoomSessionA
         ...state,
         currentTurn: null,
         yourWord: null,
+        liveScores: action.payload.scores,
         lastTurnResult: action.payload,
         chatMessages: [...state.chatMessages, systemMessage(`Turn over — the word was "${action.payload.word}".`)],
       };

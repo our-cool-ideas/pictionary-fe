@@ -393,8 +393,6 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
     return () => clearTimeout(timer);
   }, [soleSurvivorClosesAt, actions, router]);
 
-  // Whether the reveal window (the first REVEAL_DURATION_MS of a turn)
-  // is still active — the drawer can't actually draw yet during this,
   // Drawing is allowed the instant a turn starts — no pre-draw reveal
   // pause anymore (see game.service.ts's chooseWord: turnEndsAt no
   // longer reserves a reveal window either). The drawer already knows
@@ -461,6 +459,40 @@ export function CanvasBoard({ isDrawer, color, onColorChange, tool, onToolChange
   // strokes, so it never pollutes state.strokes and disappears cleanly
   // the instant the drag ends or is cancelled.
   const [shapePreview, setShapePreview] = useState<StrokePoint[] | null>(null);
+
+  // Tears down an in-progress stroke the instant canDraw goes false for
+  // any reason OTHER than the drawer releasing their own pointer (the
+  // clock running out mid-drag, "everyone guessed" landing while they're
+  // still dragging, a disconnect-triggered skip) — handlePointerUp is a
+  // client gesture, so a server-driven turn change never calls it and
+  // never clears the flush interval or the buffered pendingPoints
+  // itself. Left alone, that interval keeps ticking: nothing inside it
+  // re-checks canDraw before submitting (its closure captured whatever
+  // canDraw was when handlePointerDown started it, which was true), so
+  // its next tick submits those leftover points as a stray stroke
+  // regardless of whose turn it actually is by then. If that broadcast
+  // lands after the NEXT turn has already reset the canvas, it shows up
+  // as unexplained lines "automatically" drawn for the new drawer — this
+  // is the actual fix for that, not a guard inside flushPendingPoints
+  // itself (its closure is already stale by the time it'd matter).
+  useEffect(() => {
+    if (canDraw) return;
+    if (flushTimerRef.current) {
+      clearInterval(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+    pendingPoints.current = [];
+    isPointerDown.current = false;
+    shapeStart.current = null;
+    // Deferred into a timer callback (rather than called synchronously
+    // in the effect body) for the same react-hooks/purity +
+    // set-state-in-effect reasons as player-identity-provider.tsx's
+    // localStorage read — the interval/ref cleanup above isn't a
+    // setState call, so it stays synchronous; only this one needs it.
+    const timer = setTimeout(() => setShapePreview(null), 0);
+    return () => clearTimeout(timer);
+  }, [canDraw]);
+
   // The canvas's own pixel buffer is CANVAS_WIDTH×CANVAS_HEIGHT physical
   // pixels by default — fine on an ordinary 1x display, but stretched
   // across a much larger CSS box (this canvas is always `w-full` of its

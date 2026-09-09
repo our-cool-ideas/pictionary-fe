@@ -13,6 +13,7 @@ export enum SOCKET_EVENT {
   ROOM_PLAYER_KICKED = "room:player_kicked",
   ROOM_PLAYER_DISCONNECTED = "room:player_disconnected",
   ROOM_PLAYER_RECONNECTED = "room:player_reconnected",
+  ROOM_HOST_CHANGED = "room:host_changed",
   ROOM_CHAT_MESSAGE = "room:chat_message",
   ROOM_CLOSED = "room:closed",
 

@@ -186,6 +186,11 @@ export function GameBoardSandboxPage() {
     currentTurn,
     yourWord,
     correctGuesserIds,
+    // Same fallback GameBoard's real `scores` derivation used to do
+    // itself before liveScores existed — fine here since the sandbox
+    // never goes through the word-choice phase that fallback broke on
+    // (see liveScores's own doc comment in room-session.type.ts).
+    liveScores: currentTurn?.scores ?? lastTurnResult?.scores ?? {},
     lastTurnResult,
     // The word-choice phase isn't modeled in this sandbox yet — every
     // mock turn here goes straight to a chosen word, same as before.

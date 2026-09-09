@@ -41,13 +41,17 @@ export function Scoreboard({
           const avatar = getAvatarOption(player.avatarId);
           const isDrawingNow = player.playerId === currentDrawerId;
           // The whole card turns orange for "you guessed it this round",
-          // or blue for "this is who's drawing right now" — a border
+          // or yellow for "this is who's drawing right now" — a border
           // color alone (or just the small pencil badge) was too easy to
           // miss at a glance, this reads immediately across the whole
           // row. The two never overlap — the drawer is never among the
           // guessers for their own turn.
           const hasGuessed = correctGuesserIds.includes(player.playerId);
-          const isHighlighted = hasGuessed || isDrawingNow;
+          // Only the orange (guessed) state is dark enough for white
+          // text — yellow (drawing) is light, so it keeps the same ink
+          // text the plain white card uses, unlike orange which needs
+          // white for contrast.
+          const needsWhiteText = hasGuessed;
           return (
             // `layout` is what animates the row sliding to its new spot
             // when someone's score overtakes another's re-sorts `sorted`
@@ -70,7 +74,7 @@ export function Scoreboard({
                   // wedge instead of a clean curve. 2px/2px on a card this
                   // small doesn't hit that mismatch.
                   "flex w-full appearance-none items-center gap-2 rounded-xl border-2 border-play-ink px-2.5 py-2 text-left shadow-[.5px_2px_0_var(--color-play-ink)] transition-colors",
-                  hasGuessed ? "bg-play-orange" : isDrawingNow ? "bg-play-blue" : "bg-white",
+                  hasGuessed ? "bg-play-orange" : isDrawingNow ? "bg-play-yellow" : "bg-white",
                   !player.connected && "opacity-50",
                 )}
               >
@@ -99,10 +103,10 @@ export function Scoreboard({
                   )}
                   {isDrawingNow && (
                     <span
-                      className="absolute -right-1.5 -bottom-1.5 flex size-5 items-center justify-center rounded-full border-2 border-white bg-play-blue"
+                      className="absolute -right-1.5 -bottom-1.5 flex size-5 items-center justify-center rounded-full border-2 border-white bg-play-yellow"
                       aria-label="Currently drawing"
                     >
-                      <Pencil className="size-2.5 text-white" strokeWidth={3} />
+                      <Pencil className="size-2.5 text-play-ink" strokeWidth={3} />
                     </span>
                   )}
                 </span>
@@ -110,17 +114,17 @@ export function Scoreboard({
                   <span
                     className={cn(
                       "truncate font-play-display text-sm font-bold",
-                      isHighlighted ? "text-white" : "text-play-ink",
+                      needsWhiteText ? "text-white" : "text-play-ink",
                     )}
                   >
                     {player.name}
-                    {isSelf && <span className={isHighlighted ? "text-white/70" : "text-play-ink/45"}> (Me)</span>}
+                    {isSelf && <span className={needsWhiteText ? "text-white/70" : "text-play-ink/45"}> (Me)</span>}
                   </span>
                   {!player.connected && (
                     <span
                       className={cn(
                         "flex items-center gap-1 text-[11px] font-bold",
-                        isHighlighted ? "text-white/80" : "text-play-ink/50",
+                        needsWhiteText ? "text-white/80" : "text-play-ink/50",
                       )}
                     >
                       <WifiOff className="size-3" /> Reconnecting…
@@ -130,7 +134,7 @@ export function Scoreboard({
                 <span
                   className={cn(
                     "shrink-0 font-play-display text-sm font-bold tabular-nums",
-                    isHighlighted ? "text-white" : "text-play-ink",
+                    needsWhiteText ? "text-white" : "text-play-ink",
                   )}
                 >
                   {scores[player.playerId] ?? 0}

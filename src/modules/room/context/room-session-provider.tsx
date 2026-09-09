@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useEffect, useReducer } from "react";
+import { createContext, useEffect, useReducer, useRef } from "react";
 import { useSocket } from "@/hooks/use-socket";
 import { SOCKET_EVENT } from "@/lib/enums/socket-event.enum";
 import type { ROOM_VISIBILITY } from "@/lib/enums/room-visibility.enum";
@@ -63,8 +63,22 @@ export function RoomSessionProvider({ children }: { children: React.ReactNode })
   const { socket, playerId } = useSocket();
   const [state, dispatch] = useReducer(roomSessionReducer, initialRoomSessionState);
 
+  // What's needed to silently rejoin after a transport-level reconnect
+  // (see the "connect" listener below) — kept as a ref, not read from
+  // `state`/`playerId` directly inside that listener, so the
+  // listener-registration effect below doesn't need `state.room` in its
+  // dependency array (that would tear down and re-register every socket
+  // listener on every room update, just to keep one handler's closure
+  // fresh). Null whenever we're not actually seated in a room.
+  const rejoinInfoRef = useRef<{ roomCode: string; name: string; avatarId: string } | null>(null);
+  useEffect(() => {
+    const me = playerId ? state.room?.players.find((p) => p.playerId === playerId) : undefined;
+    rejoinInfoRef.current = state.room && me ? { roomCode: state.room.code, name: me.name, avatarId: me.avatarId } : null;
+  }, [state.room, playerId]);
+
   useEffect(() => {
     const onRoomUpdate = (payload: { room: RoomState }) => dispatch({ type: "SET_ROOM", room: payload.room });
+    const onHostChanged = (payload: { room: RoomState; newHostName: string }) => dispatch({ type: "HOST_CHANGED", room: payload.room, newHostName: payload.newHostName });
 
     const onPlayerKicked = (payload: { room: RoomState | null; playerId: string; youWereKicked?: boolean }) => {
       if (payload.youWereKicked) {
@@ -97,11 +111,35 @@ export function RoomSessionProvider({ children }: { children: React.ReactNode })
     const onStrokeHistory = (payload: { strokes: DrawAction[] }) => dispatch({ type: "STROKE_HISTORY", strokes: payload.strokes });
     const onCanvasCleared = () => dispatch({ type: "CANVAS_CLEARED" });
 
+    // socket.io-client auto-reconnects its transport on its own after a
+    // network blip, but that alone never told the SERVER we're back — the
+    // server still had us as `connected: false` until either the 15s
+    // reconnect-grace eviction kicked in, or we happened to resubmit
+    // ROOM_JOIN some other way. This fires on every "connect" event after
+    // the first (a genuine transport reconnect, not the initial connect on
+    // mount — `hasConnectedOnce` starts true if the socket is somehow
+    // already connected when this effect runs, so that case isn't
+    // mistaken for a reconnect either) and silently re-emits ROOM_JOIN
+    // with whatever we were last seated as, exactly like the join form
+    // would, just without the user having to do anything.
+    let hasConnectedOnce = socket.connected;
+    const onConnect = () => {
+      const rejoin = rejoinInfoRef.current;
+      if (hasConnectedOnce && rejoin) {
+        void emitWithAck<{ room: RoomState }>(socket, SOCKET_EVENT.ROOM_JOIN, rejoin).then((res) => {
+          if (res.data?.room) dispatch({ type: "SET_ROOM", room: res.data.room });
+        });
+      }
+      hasConnectedOnce = true;
+    };
+
+    socket.on("connect", onConnect);
     socket.on(SOCKET_EVENT.ROOM_PLAYER_JOINED, onRoomUpdate);
     socket.on(SOCKET_EVENT.ROOM_PLAYER_LEFT, onRoomUpdate);
     socket.on(SOCKET_EVENT.ROOM_PLAYER_RECONNECTED, onRoomUpdate);
     socket.on(SOCKET_EVENT.ROOM_PLAYER_DISCONNECTED, onRoomUpdate);
     socket.on(SOCKET_EVENT.ROOM_PLAYER_KICKED, onPlayerKicked);
+    socket.on(SOCKET_EVENT.ROOM_HOST_CHANGED, onHostChanged);
     socket.on(SOCKET_EVENT.ROOM_CHAT_MESSAGE, onChatMessage);
     socket.on(SOCKET_EVENT.ROOM_CLOSED, onRoomClosed);
 
@@ -118,11 +156,13 @@ export function RoomSessionProvider({ children }: { children: React.ReactNode })
     socket.on(SOCKET_EVENT.GAME_CANVAS_CLEARED, onCanvasCleared);
 
     return () => {
+      socket.off("connect", onConnect);
       socket.off(SOCKET_EVENT.ROOM_PLAYER_JOINED, onRoomUpdate);
       socket.off(SOCKET_EVENT.ROOM_PLAYER_LEFT, onRoomUpdate);
       socket.off(SOCKET_EVENT.ROOM_PLAYER_RECONNECTED, onRoomUpdate);
       socket.off(SOCKET_EVENT.ROOM_PLAYER_DISCONNECTED, onRoomUpdate);
       socket.off(SOCKET_EVENT.ROOM_PLAYER_KICKED, onPlayerKicked);
+      socket.off(SOCKET_EVENT.ROOM_HOST_CHANGED, onHostChanged);
       socket.off(SOCKET_EVENT.ROOM_CHAT_MESSAGE, onChatMessage);
       socket.off(SOCKET_EVENT.ROOM_CLOSED, onRoomClosed);
 
