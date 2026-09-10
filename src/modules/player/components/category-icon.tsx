@@ -1,5 +1,6 @@
-import { Apple, Boxes, Car, Carrot, Clapperboard, Flag, Ghost, PawPrint, Refrigerator, Shapes, Shirt, Sparkles, UtensilsCrossed } from "lucide-react";
+import { Briefcase, Car, ChefHat, CloudSun, Flag, Gamepad2, Ghost, PawPrint, Salad, Shapes, Shield, Smartphone, Tag, UtensilsCrossed, Wrench, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { RealisticGirlGlasses } from "@/modules/player/components/realistic-girl-glasses";
 
 // Keyed by category NAME (lowercased), not id/slug — every call site
 // already has the name in hand, and it's the one field guaranteed
@@ -9,20 +10,30 @@ import type { LucideIcon } from "lucide-react";
 // an admin adds later just falls through to the generic Shapes glyph
 // below rather than rendering blank.
 const ICON_BY_CATEGORY_NAME: Record<string, LucideIcon> = {
-  fruits: Apple,
-  vegetables: Carrot,
-  cars: Car,
-  flag: Flag,
-  "bollywood actors": Clapperboard,
-  "cartoon characters": Ghost,
+  "action & verbs": Zap,
+  animals: PawPrint,
+  "fruits & veggies": Salad,
   food: UtensilsCrossed,
-  animal: PawPrint,
-  things: Boxes,
-  objects: Boxes,
-  clothes: Shirt,
-  appliances: Refrigerator,
-  "bhumika's special": Sparkles,
+  "cartoon characters": Ghost,
+  "marvel & dc characters": Shield,
+  flags: Flag,
+  profession: Briefcase,
+  "video games": Gamepad2,
+  apps: Smartphone,
+  logos: Tag,
+  "kitchen items": ChefHat,
+  tools: Wrench,
+  vehicles: Car,
+  "weather & nature": CloudSun,
 };
+
+// "Bhumika Specials" gets the actual GIRL_GLASSES avatar illustration
+// (see RealisticGirlGlasses's own doc comment) instead of a Lucide glyph —
+// by explicit request, since this category is named after that avatar.
+// Handled as a separate special case rather than folding into
+// ICON_BY_CATEGORY_NAME because RealisticGirlGlasses takes a `size` prop,
+// not `strokeWidth` — it's a full illustration, not a themeable line icon.
+const BHUMIKA_SPECIALS_NAME = "bhumika specials";
 
 interface CategoryIconProps {
   name: string | null | undefined;
@@ -42,6 +53,9 @@ interface CategoryIconProps {
  * misleading about what's actually stored.
  */
 export function CategoryIcon({ name, className, strokeWidth = 2.2 }: CategoryIconProps) {
+  if (name?.trim().toLowerCase() === BHUMIKA_SPECIALS_NAME) {
+    return <RealisticGirlGlasses className={className} />;
+  }
   const Icon = (name && ICON_BY_CATEGORY_NAME[name.trim().toLowerCase()]) || Shapes;
   return <Icon className={className} strokeWidth={strokeWidth} aria-hidden="true" />;
 }
